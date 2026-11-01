@@ -106,10 +106,47 @@ function openPaywall(reason = '') {
 ACTIONS.paywall = () => { openPaywall(); return false; };
 ACTIONS.payPlan = el => { payPlan = el.dataset.v; openPaywall(); return false; };
 ACTIONS.payLogin = () => { openLogin('Войди — и 7 дней всё будет открыто бесплатно.'); return false; };
-ACTIONS.payStart = () => {
-  if (!BILLING.payments) { toast({ icon: 'clock', title: 'Оплата появится совсем скоро', text: 'Мы подключаем приём платежей' }); return false; }
-  return false;   // здесь будет переход на страницу оплаты
+ACTIONS.payStart = async el => {
+  if (!Cloud.user) { openLogin('Войди, чтобы оформить подписку.'); return false; }
+  el.disabled = true; el.textContent = 'Открываем оплату…';
+  try {
+    const { data, error } = await Cloud.sb.functions.invoke('create-payment', { body: { plan: payPlan } });
+    if (error || !data || !data.url) throw error || new Error('no url');
+    localStorage.setItem('lifegame.payPending', String(Date.now()));
+    location.href = data.url;   // страница оплаты ЮKassa: карта или СБП
+  } catch (e) {
+    let code = '';
+    try { code = (await e.context.json()).error; } catch (_) { }
+    toast(code === 'payments_not_configured'
+      ? { icon: 'clock', title: 'Оплата появится совсем скоро', text: 'Мы подключаем приём платежей' }
+      : { icon: 'alert', title: 'Не получилось открыть оплату', text: 'Проверь интернет и попробуй ещё раз' });
+    el.disabled = false; el.textContent = `Оформить за ${fmtNum(PRICES[payPlan])} ₽`;
+  }
+  return false;
 };
+
+/* возврат со страницы оплаты: ждём, пока сервер получит подтверждение от ЮKassa */
+async function watchPayment() {
+  const pending = +(localStorage.getItem('lifegame.payPending') || 0);
+  const fromPay = /[?&]paid=1/.test(location.search);
+  if (!Cloud.user || (!fromPay && Date.now() - pending > 30 * 60 * 1000)) return;
+  if (fromPay) history.replaceState(null, '', location.pathname + location.hash);
+  const before = Cloud.profile && Cloud.profile.premium_until ? new Date(Cloud.profile.premium_until) : new Date(0);
+  toast({ icon: 'clock', title: 'Проверяем оплату…', text: 'Обычно это занимает несколько секунд' });
+  for (let i = 0; i < 20; i++) {
+    await new Promise(r => setTimeout(r, 3000));
+    await loadProfile();
+    const now = Cloud.profile && Cloud.profile.premium_until ? new Date(Cloud.profile.premium_until) : new Date(0);
+    if (now > before) {
+      localStorage.removeItem('lifegame.payPending');
+      celebrate(`<div class="cel-badge">${icon('crown', 64)}</div><div class="eyebrow">Оплата прошла</div><h2>Игра в жизнь+</h2>
+        <p>Доступ открыт до ${now.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}. Спасибо, что поддерживаешь проект!</p>`, 'win');
+      safeRender();
+      return;
+    }
+  }
+  toast({ icon: 'info', title: 'Оплата ещё обрабатывается', text: 'Доступ откроется сам. Если нет — напиши на nick.ditski@yandex.ru' });
+}
 
 /* экран-заглушка для закрытого раздела */
 function lockedView(title, text, ic = 'crown') {
