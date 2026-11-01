@@ -98,9 +98,9 @@ function openPaywall(reason = '') {
       <p class="muted" style="margin:8px auto 0;max-width:360px">${reason || 'Открой всю игру: боссов, все разделы и полную статистику.'}</p>
     </div>
     <div class="list mb">${PREMIUM_FEATURES.map(([ic, t, s]) => `<div class="li">${icon(ic, 18)}<div class="grow"><b>${t}</b><small>${s}</small></div>${icon('check', 16)}</div>`).join('')}</div>
-    <div class="grid g2 keep mb">${plan('month', 'Месяц', PRICES.month, 'продление каждый месяц', '')}${plan('year', 'Год', PRICES.year, `≈${fmtNum(Math.round(PRICES.year / 12))} ₽ в месяц`, '−' + Math.round((1 - PRICES.year / (PRICES.month * 12)) * 100) + '%')}</div>
+    <div class="grid g2 keep mb">${plan('month', 'Месяц', PRICES.month, '30 дней доступа', '')}${plan('year', 'Год', PRICES.year, `≈${fmtNum(Math.round(PRICES.year / 12))} ₽ в месяц`, '−' + Math.round((1 - PRICES.year / (PRICES.month * 12)) * 100) + '%')}</div>
     ${cta}
-    <div class="sub" style="text-align:center;margin-top:12px">${st.kind === 'expired' ? 'Пробный период закончился. Весь прогресс на месте.' : 'Отменить можно в любой момент в настройках.'}</div>
+    <div class="sub" style="text-align:center;margin-top:12px">${st.kind === 'expired' ? 'Пробный период закончился. Весь прогресс на месте.' : 'Разовая оплата за период, без автосписаний.'}<br>Оплачивая, вы принимаете <a href="legal/offer.html" target="_blank" rel="noopener">оферту</a> и <a href="legal/privacy.html" target="_blank" rel="noopener">политику конфиденциальности</a>.</div>
     <div class="row" style="justify-content:center;margin-top:8px"><button class="btn ghost sm" data-act="closeModal">Не сейчас</button></div>`);
 }
 ACTIONS.paywall = () => { openPaywall(); return false; };
@@ -136,6 +136,7 @@ function accountCard() {
       : `<p class="muted" style="margin-top:0">Войди по почте — прогресс будет храниться в облаке, не пропадёт при смене телефона и синхронизируется с компьютером.</p>
         <button class="btn primary" data-act="login">${icon('user', 15)} Войти или создать аккаунт</button>
         <div class="sub mt">Фото «до/после» остаются только на устройстве и в облако не отправляются.</div>`}
+    <div class="sub mt"><a href="legal/about.html" target="_blank" rel="noopener">О сервисе и тарифы</a> · <a href="legal/offer.html" target="_blank" rel="noopener">Оферта</a> · <a href="legal/privacy.html" target="_blank" rel="noopener">Конфиденциальность</a></div>
   </div>`;
 }
 ACTIONS.syncNow = async () => { await cloudPush(true); if (Cloud.status === 'ok') toast({ icon: 'check', title: 'Синхронизировано' }); };
