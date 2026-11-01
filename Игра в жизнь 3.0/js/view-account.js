@@ -9,7 +9,7 @@ function openLogin(sub = 'Прогресс будет храниться в об
     <form data-form="loginEmail" class="stack">
       <label class="field"><span>Почта</span><input class="input" type="email" name="email" value="${esc(loginEmail)}" placeholder="you@mail.ru" autocomplete="email" required autofocus></label>
       <button class="btn primary block">Получить код</button>
-      <div class="sub">Пароль не нужен: пришлём письмо для входа. Если аккаунта ещё нет — он создастся.</div>
+      <div class="sub">Пароль не нужен: пришлём код из 6 цифр. Если аккаунта ещё нет — он создастся.</div>
     </form>`);
 }
 ACTIONS.login = () => { openLogin(); return false; };
@@ -22,13 +22,40 @@ FORMS.loginEmail = async (d, form) => {
     toast({ icon: 'alert', title: 'Не удалось отправить код', text: /rate|limit|seconds/i.test(e.message) ? 'Слишком часто. Подожди минуту и попробуй снова.' : e.message });
     return false;
   }
-  openModal(`${modalHead('Проверь почту', `Отправили письмо на ${esc(loginEmail)}. Оно может прийти в «Спам».`)}
+  showCodeStep();
+  return false;
+};
+let resendTimer = null;
+function showCodeStep() {
+  openModal(`${modalHead('Код из письма', `Отправили код на ${esc(loginEmail)}. Письмо может прийти в «Спам».`)}
     <form data-form="loginCode" class="stack">
-      <div class="callout">${icon('info', 16)}<div>Нажми в письме <b>«Sign in»</b> — откроется приложение, и ты войдёшь. Если в письме есть код из 6 цифр, можно ввести его здесь.</div></div>
-      <input class="input" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="000000" required style="text-align:center;font-size:24px;letter-spacing:.3em;height:58px">
-      <button class="btn primary block">Войти по коду</button>
-      <button type="button" class="btn ghost block" data-act="login">Другая почта</button>
+      <input class="input" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="000000" required autofocus data-input="codeInput" style="text-align:center;font-size:26px;letter-spacing:.3em;height:60px">
+      <button class="btn primary block">Войти</button>
+      <div class="row" style="justify-content:space-between">
+        <button type="button" class="btn ghost sm" data-act="login">Другая почта</button>
+        <button type="button" class="btn ghost sm" data-act="resendCode" id="resendBtn" disabled>Отправить снова</button>
+      </div>
     </form>`);
+  let left = 60;
+  const tick = () => {
+    const b = document.getElementById('resendBtn'); if (!b) { clearInterval(resendTimer); return; }
+    if (left > 0) { b.textContent = `Отправить снова · ${left}`; b.disabled = true; left--; }
+    else { b.textContent = 'Отправить снова'; b.disabled = false; clearInterval(resendTimer); }
+  };
+  clearInterval(resendTimer); tick(); resendTimer = setInterval(tick, 1000);
+  setTimeout(() => { const f = document.querySelector('[name=code]'); if (f) f.focus(); }, 80);
+}
+/* код вставлен или набран целиком — входим без лишнего нажатия */
+INPUTS.codeInput = el => {
+  const digits = el.value.replace(/\D/g, '');
+  if (digits.length >= 6 && digits.length <= 8 && !el.dataset.sent) {
+    el.dataset.sent = '1';
+    setTimeout(() => { const f = el.closest('form'); if (f) f.requestSubmit(); delete el.dataset.sent; }, 150);
+  }
+};
+ACTIONS.resendCode = async () => {
+  try { await cloudSendCode(loginEmail); toast({ icon: 'check', title: 'Код отправлен ещё раз' }); showCodeStep(); }
+  catch (e) { toast({ icon: 'alert', title: 'Не удалось отправить', text: 'Подожди минуту и попробуй снова' }); }
   return false;
 };
 FORMS.loginCode = async (d, form) => {
@@ -38,7 +65,7 @@ FORMS.loginCode = async (d, form) => {
     closeModal(true);
     toast({ icon: 'check', title: 'Готово, ты в аккаунте', text: 'Прогресс сохраняется в облаке' });
   } catch (e) {
-    btn.disabled = false; btn.textContent = 'Войти по коду';
+    btn.disabled = false; btn.textContent = 'Войти';
     toast({ icon: 'alert', title: 'Код не подошёл', text: 'Проверь цифры или запроси новый код' });
   }
   return false;
