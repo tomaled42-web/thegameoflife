@@ -128,6 +128,7 @@ async function onSignedIn() {
   } catch (e) { console.warn('cloud sync failed', e); Cloud.status = 'error'; }
   Cloud.lastPull = Date.now();
   safeRender();
+  if (typeof watchPayment === 'function') watchPayment();
 }
 /* на устройстве и в облаке разный прогресс — пусть решает человек; другой вариант остаётся страховочной копией */
 function chooseVersion(remote) {
