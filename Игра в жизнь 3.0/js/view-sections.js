@@ -36,7 +36,7 @@ function sectionTile(s) {
 function sectionSummary(s) {
   switch (s.type) {
     case 'weight': { const lw = lastWeight(); return lw ? `${fmtNum(lw, 1)} кг${S.weight.goal ? ` · цель ${fmtNum(S.weight.goal, 1)}` : ''}` : 'Запиши стартовый вес'; }
-    case 'workout': { const w = S.workouts.list.filter(x => x.d >= weekStart()).length; return `${w} из ${S.workouts.weeklyGoal} тренировок за неделю`; }
+    case 'workout': { const w = S.workouts.list.filter(x => x.d >= weekStart()).length; const st = woWeekStreak(); return `${w} из ${S.workouts.weeklyGoal} за неделю${st ? ` · серия ${st} нед.` : ''}`; }
     case 'reading': { const b = S.reading.books.find(x => x.status === 'now'); return b ? `«${esc(b.title)}» · ${Math.round((b.read || 0) / (b.pages || 1) * 100)}%` : 'Добавь книгу'; }
     case 'meditation': return `${fmtNum(totalMedMin())} минут всего`;
     case 'abstinence': { const c = S.abstinence.counters; return c.length ? c.map(x => `${esc(x.name)}: ${abstDays(x)} дн.`).slice(0, 2).join(' · ') : 'Добавь счётчик'; }
