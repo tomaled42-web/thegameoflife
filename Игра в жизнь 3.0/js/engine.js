@@ -319,7 +319,7 @@ function maybeRandomReward(ev, qq) {
 /* ================= Испытание дня ================= */
 const CHALLENGES = {
   weight: ['Пройди на 2 000 шагов больше обычного', 'Выпей лишний стакан воды до обеда', 'Обойдись сегодня без сладкого', 'Поднимайся по лестнице вместо лифта'],
-  workout: ['Добавь один подход к любимому упражнению', 'Сделай 30 отжиманий в течение дня', 'Растяжка 10 минут после тренировки', 'Планка: на 15 секунд дольше рекорда'],
+  workout: ['Потренируйся на 10 минут дольше обычного', 'Сделай 30 отжиманий в течение дня', 'Растяжка 10 минут после тренировки', 'Попробуй вид активности, которого давно не было', 'Пройди пешком 30 минут вместо транспорта'],
   reading: ['Прочитай на 10 страниц больше обычного', 'Почитай 15 минут без телефона рядом', 'Выпиши одну мысль из книги'],
   meditation: ['Медитируй на 5 минут дольше обычного', 'Сделай 10 осознанных вдохов перед сном', 'Пройдись 10 минут без наушников'],
   abstinence: ['Проведи час без телефона', 'Замени один импульсивный порыв прогулкой'],
@@ -400,8 +400,11 @@ const ACHIEVEMENTS = [
   { id: 'boss5', name: 'Охотник', desc: 'Победи 5 боссов', icon: 'swords', test: () => S.bosses.filter(b => b.status === 'won').length >= 5 },
   { id: 'bossEpic', name: 'Эпос', desc: 'Победи эпического босса', icon: 'castle', test: () => S.bosses.some(b => b.status === 'won' && b.tier >= 3) },
   { id: 'bossLegend', name: 'Сказание', desc: 'Победи легендарного босса', icon: 'crown', test: () => S.bosses.some(b => b.status === 'won' && b.tier >= 4) },
-  { id: 'pr1', name: 'Новый рекорд', desc: 'Побей личный рекорд', icon: 'dumbbell', test: () => countEvents(e => e.pr) >= 1 },
-  { id: 'pr10', name: 'Рекордсмен', desc: '10 личных рекордов', icon: 'trophy', test: () => countEvents(e => e.pr) >= 10 },
+  { id: 'woWeek', name: 'Неделя в цель', desc: 'Выполни недельную цель по тренировкам', icon: 'calendar', test: () => woBestStreak() >= 1 },
+  { id: 'woWeeks4', name: 'Режим', desc: '4 недели подряд в цель', icon: 'flame', test: () => woBestStreak() >= 4 },
+  { id: 'woWeeks12', name: 'Образ жизни', desc: '12 недель подряд в цель', icon: 'crown', test: () => woBestStreak() >= 12 },
+  { id: 'woH10', name: '10 часов в движении', desc: '600 минут тренировок', icon: 'timer', test: () => woTotalMin() >= 600 },
+  { id: 'woMix', name: 'Универсал', desc: '3 разных вида тренировок за неделю', icon: 'sparkle', test: () => woMixBest() >= 3 },
   { id: 'wo10', name: 'Железо', desc: '10 тренировок', icon: 'dumbbell', test: () => S.workouts.list.length >= 10 },
   { id: 'wo100', name: 'Сталь', desc: '100 тренировок', icon: 'shield', test: () => S.workouts.list.length >= 100 },
   { id: 'book1', name: 'Первая книга', desc: 'Дочитай книгу', icon: 'book', test: () => S.reading.books.filter(b => b.status === 'done').length >= 1 },
@@ -453,11 +456,53 @@ function weightTrend() {   // экспоненциальное сглажива�
   return out;
 }
 function abstDays(c) { return Math.max(0, diffDays(c.start, today())); }
-function est1rm(w, r) { return r <= 1 ? w : w * (1 + r / 30); }
-function exerciseNames() { return [...new Set(S.workouts.list.flatMap(w => w.items.map(i => i.ex)))].sort(); }
+/* тренировки: вид, длительность и ощущение — без упражнений и подходов */
+const WO_TYPES = [
+  { id: 'strength', name: 'Силовая', icon: 'dumbbell' },
+  { id: 'cardio', name: 'Кардио', icon: 'run' },
+  { id: 'hiit', name: 'Интервальная', icon: 'zap' },
+  { id: 'stretch', name: 'Растяжка, йога', icon: 'leaf' },
+  { id: 'sport', name: 'Спорт, игры', icon: 'trophy' },
+];
+const WO_EFFORT = ['Легко', 'Нормально', 'Тяжело'];
+const woType = w => WO_TYPES.find(t => t.id === (w.type || 'strength')) || WO_TYPES[0];
+const woMin = w => +w.min || 0;
+const woXp = (min, effort) => 20 + Math.min(40, Math.round(min / 3)) + (effort >= 3 ? 10 : effort === 2 ? 5 : 0);
+const woTotalMin = () => sum(S.workouts.list, woMin);
+function woWeekCount(ws) { const we = addDays(ws, 6); return S.workouts.list.filter(x => x.d >= ws && x.d <= we).length; }
+/* недели подряд с выполненной целью; текущая неделя засчитывается, как только цель взята */
+function woWeekStreak() {
+  const goal = S.workouts.weeklyGoal, cur = weekStart();
+  let w = woWeekCount(cur) >= goal ? cur : addDays(cur, -7), n = 0;
+  while (n < 520 && woWeekCount(w) >= goal) { n++; w = addDays(w, -7); }
+  return n;
+}
+function woBestStreak() {
+  const goal = S.workouts.weeklyGoal, weeks = [...new Set(S.workouts.list.map(x => weekStart(x.d)))].sort();
+  let best = 0, run = 0, last = null;
+  for (const w of weeks) {
+    if (woWeekCount(w) < goal) continue;
+    run = last && addDays(last, 7) === w ? run + 1 : 1;
+    best = Math.max(best, run); last = w;
+  }
+  return best;
+}
+function woMixBest() {
+  const m = {};
+  for (const x of S.workouts.list) (m[weekStart(x.d)] ||= new Set()).add(woType(x).id);
+  return Math.max(0, ...Object.values(m).map(s => s.size));
+}
+function woRecords(exceptId = null) {
+  const L = S.workouts.list.filter(x => x.id !== exceptId), byWeek = {}, byMonth = {};
+  for (const x of L) { byWeek[weekStart(x.d)] = (byWeek[weekStart(x.d)] || 0) + 1; byMonth[x.d.slice(0, 7)] = (byMonth[x.d.slice(0, 7)] || 0) + woMin(x); }
+  const longest = L.reduce((a, x) => woMin(x) > woMin(a || {}) ? x : a, null);
+  return { longest, bestWeek: Math.max(0, ...Object.values(byWeek)), bestMonth: Math.max(0, ...Object.values(byMonth)) };
+}
+/* старые записи с упражнениями — для боссов, созданных до упрощения */
+function exerciseNames() { return [...new Set(S.workouts.list.flatMap(w => (w.items || []).map(i => i.ex)))].sort(); }
 function exerciseBest(name, from = null) {
   let best = 0;
-  for (const w of S.workouts.list) if (!from || w.d >= from) for (const it of w.items) if (it.ex.toLowerCase() === name.toLowerCase()) for (const s of it.sets) best = Math.max(best, +s.w || 0);
+  for (const w of S.workouts.list) if (!from || w.d >= from) for (const it of w.items || []) if (it.ex.toLowerCase() === name.toLowerCase()) for (const s of it.sets) best = Math.max(best, +s.w || 0);
   return best;
 }
 /* контент: публикации по площадкам */
@@ -488,7 +533,7 @@ const TIERS = [
 const METRICS = {
   reach: [
     { id: 'weight', name: 'Вес тела, кг', unit: 'кг' },
-    { id: 'exercise', name: 'Рабочий вес в упражнении, кг', unit: 'кг', arg: true },
+    { id: 'exercise', name: 'Рабочий вес в упражнении, кг', unit: 'кг', arg: true, hidden: true },
     { id: 'followers', name: 'Подписчики (все площадки)', unit: 'подп.' },
     { id: 'manual', name: 'Своё значение (вручную)', unit: '' },
   ],
@@ -498,6 +543,7 @@ const METRICS = {
     { id: 'read_minutes', name: 'Минуты чтения', unit: 'мин' },
     { id: 'med_minutes', name: 'Минуты медитации', unit: 'мин' },
     { id: 'workouts', name: 'Тренировки', unit: 'трен.' },
+    { id: 'wo_minutes', name: 'Минуты тренировок', unit: 'мин' },
     { id: 'publications', name: 'Публикации', unit: 'публ.' },
     { id: 'tasks', name: 'Задания в разделе', unit: 'зад.' },
     { id: 'manual', name: 'Своё количество (вручную)', unit: '' },
@@ -513,7 +559,7 @@ const METRICS = {
 };
 const BOSS_ACTIONS = [
   { id: 'task', name: 'Задание этого раздела' }, { id: 'any', name: 'Любое задание' },
-  { id: 'workout', name: 'Тренировка' }, { id: 'pr', name: 'Новый рекорд' },
+  { id: 'workout', name: 'Тренировка' }, { id: 'pr', name: 'Личный рекорд' },
   { id: 'reading', name: 'Запись чтения' }, { id: 'meditation', name: 'Сессия медитации' },
   { id: 'publish', name: 'Публикация' }, { id: 'content', name: 'Контент в запас' },
   { id: 'journal', name: 'Запись дневника' },{ id: 'perfect', name: 'Идеальный день' }, { id: 'challenge', name: 'Испытание дня' },
@@ -532,6 +578,7 @@ function metricValue(b) {
     case 'books': return b.start + S.reading.books.filter(x => x.status === 'done' && (x.finished || '') >= since).length;
     case 'med_minutes': return b.start + sum(S.meditation.sessions.filter(x => x.d >= since), x => x.min);
     case 'workouts': return b.start + S.workouts.list.filter(x => x.d >= since).length;
+    case 'wo_minutes': return b.start + sum(S.workouts.list.filter(x => x.d >= since), woMin);
     case 'followers': return followersTotal() ?? b.start;
     case 'publications': return b.start + S.content.posts.filter(x => x.d >= since).length;
     case 'tasks': return b.start + ev.filter(e => e.k === 'quest' && e.s === b.sectionId && e.d >= since).length;
@@ -563,12 +610,13 @@ function baselinePerDay(metric, sectionId) {
   const hist = {
     pages: sum(S.reading.log.filter(inWin), x => x.pages), read_minutes: sum(S.reading.log.filter(inWin), x => x.min),
     med_minutes: sum(S.meditation.sessions.filter(inWin), x => x.min), workouts: S.workouts.list.filter(inWin).length,
+    wo_minutes: sum(S.workouts.list.filter(inWin), woMin),
     books: S.reading.books.filter(x => x.status === 'done' && (x.finished || '') >= from).length,
     tasks: S.events.filter(e => e.k === 'quest' && e.s === sectionId && inWin(e)).length,
     publications: S.content.posts.filter(inWin).length,
     followers: (() => { const a = followersTotal(from), b = followersTotal(); return a != null && b != null ? Math.max(0, b - a) : 0; })(),
   }[metric];
-  const dflt = { pages: 20, read_minutes: 20, med_minutes: 10, workouts: 0.45, books: 0.04, tasks: 2, publications: 2, followers: 10 }[metric] || 1;
+  const dflt = { pages: 20, read_minutes: 20, med_minutes: 10, workouts: 0.45, wo_minutes: 20, books: 0.04, tasks: 2, publications: 2, followers: 10 }[metric] || 1;
   const fromHist = hist ? hist / span : 0;
   return { perDay: fromHist > dflt * 0.3 ? fromHist : dflt, fromHistory: fromHist > dflt * 0.3 };
 }
