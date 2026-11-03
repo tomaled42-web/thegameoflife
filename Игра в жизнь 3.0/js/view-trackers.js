@@ -176,106 +176,104 @@ ACTIONS.delPhoto = async el => {
 };
 
 /* ======================= ТРЕНИРОВКИ ======================= */
+const WO_MINUTES = [20, 30, 45, 60, 90];
+const woDraft = { type: 'strength', min: 45, effort: 2 };
 TRACKERS.workout = sec => {
-  const WO = S.workouts, wk = WO.list.filter(x => x.d >= weekStart()).length;
-  const names = exerciseNames();
-  if (!UI.exercise || !names.includes(UI.exercise)) UI.exercise = names[0] || null;
-  const prs = names.map(n => ({ n, best: exerciseBest(n), d: (WO.prs[n.toLowerCase()] || {}).d })).sort((a, b) => b.best - a.best);
-  const series = [];
-  if (UI.exercise) for (const w of [...WO.list].sort((a, b) => a.d < b.d ? -1 : 1)) {
-    const it = w.items.filter(i => i.ex.toLowerCase() === UI.exercise.toLowerCase());
-    if (!it.length) continue;
-    const sets = it.flatMap(i => i.sets);
-    series.push({ x: dayIdx(w.d), d: w.d, y: Math.max(...sets.map(s => +s.w || 0)), e1: Math.max(...sets.map(s => est1rm(+s.w || 0, +s.r || 0))) });
-  }
-  const prCount = S.events.filter(e => e.pr).length;
+  const WO = S.workouts, ws = weekStart(), wk = woWeekCount(ws), goal = WO.weeklyGoal;
+  const weekMin = sum(WO.list.filter(x => x.d >= ws), woMin);
+  const streak = woWeekStreak(), rec = woRecords();
+  const left = Math.max(0, goal - wk), daysLeft = 7 - diffDays(ws, today());
+  const hint = left === 0 ? `<b>Цель недели взята.</b> Серия недель продолжается — каждая следующая тренировка идёт в плюс.`
+    : `Осталось ${left} ${plural(left, ['тренировка', 'тренировки', 'тренировок'])} за ${daysLeft} ${pDays(daysLeft)}${streak ? ` — и серия вырастет до ${streak + 1} ${plural(streak + 1, ['недели', 'недель', 'недель'])}` : ''}.`;
+  const weeks = Array.from({ length: 12 }, (_, i) => {
+    const w = addDays(ws, (i - 11) * 7), c = woWeekCount(w);
+    return { v: c, label: String(parseDay(w).getDate()), cur: i === 11, color: c >= goal ? sec.color : '', title: `Неделя с ${fmtDay(w)}: ${c} трен.` };
+  });
+  const month = today().slice(0, 7), mList = WO.list.filter(x => x.d.startsWith(month));
+  const mix = WO_TYPES.map(t => ({ t, n: mList.filter(x => woType(x).id === t.id).length, min: sum(mList.filter(x => woType(x).id === t.id), woMin) })).filter(x => x.n);
   return `
   <div class="grid g-hero">
     <div class="card glow" style="--cg:color-mix(in srgb, ${sec.color} 30%, transparent)">
       <div class="card-h"><h3>${icon('calendar', 18)} Цель недели</h3>
-        <div class="stepper"><button class="icon-btn sm" data-act="woGoal" data-d="-1">${icon('minus', 14)}</button><span class="sub" style="min-width:64px;text-align:center">${WO.weeklyGoal} трен.</span><button class="icon-btn sm" data-act="woGoal" data-d="1">${icon('plus', 14)}</button></div></div>
+        <div class="stepper"><button class="icon-btn sm" data-act="woGoal" data-d="-1">${icon('minus', 14)}</button><span class="sub" style="min-width:64px;text-align:center">${goal} трен.</span><button class="icon-btn sm" data-act="woGoal" data-d="1">${icon('plus', 14)}</button></div></div>
       <div class="row" style="gap:26px;align-items:center;flex-wrap:wrap">
-        ${ring(wk / WO.weeklyGoal, { size: 150, stroke: 9, key: 'wo-ring', color: sec.color, glow: true, segments: WO.weeklyGoal, center: `<div><div class="num num-m">${wk}<span class="fade">/${WO.weeklyGoal}</span></div><div class="sub">на неделе</div></div>` })}
-        <div class="grow"><div class="kv"><div><small>Всего тренировок</small><b>${WO.list.length}</b></div><div><small>Личных рекордов</small><b>${prCount}</b></div><div><small>Упражнений</small><b>${names.length}</b></div></div>
-          <button class="btn primary mt2 block" data-act="newWorkout">${icon('plus', 16)} Записать тренировку</button></div>
+        ${ring(wk / goal, { size: 150, stroke: 9, key: 'wo-ring', color: sec.color, glow: true, segments: goal, center: `<div><div class="num num-m">${wk}<span class="fade">/${goal}</span></div><div class="sub">на неделе</div></div>` })}
+        <div class="grow"><div class="kv"><div><small>Серия недель</small><b>${streak}</b></div><div><small>Минут за неделю</small><b>${fmtNum(weekMin)}</b></div><div><small>Всего</small><b>${WO.list.length}</b></div></div>
+          <div class="callout ${left ? '' : 'acc'} mt">${icon(left ? 'flag' : 'flame', 16)}<div>${hint}</div></div></div>
       </div>
     </div>
     <div class="card">
-      <div class="card-h"><h3>${icon('trophy', 18)} Личные рекорды</h3></div>
-      ${prs.length ? `<div class="list">${prs.slice(0, 6).map(p => `<div class="li"><div class="grow"><b>${esc(p.n)}</b><small>${p.d ? relDay(p.d) : ''}</small></div><span class="num" style="font-size:20px">${fmtNum(p.best, 1)}<span class="u">кг</span></span></div>`).join('')}</div>`
-        : emptyState('trophy', 'Запиши первую тренировку — рекорды появятся здесь')}
+      <div class="card-h"><h3>${icon('plus', 18)} Записать тренировку</h3></div>
+      ${woFormHtml()}
     </div>
   </div>
-  <div class="card mt">
-    <div class="card-h"><h3>${icon('chart', 18)} Прогресс по упражнению</h3>
-      ${names.length ? `<select class="input" style="width:auto;height:36px;font-size:13px" data-change="pickExercise">${names.map(n => `<option ${n === UI.exercise ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>` : ''}</div>
-    ${lineChart({
-      id: 'ex', h: 210,
-      series: [{ pts: series, color: sec.color, fill: true, width: 2, dots: true }, { pts: series.map(p => ({ ...p, y: p.e1 })), color: 'rgba(255,255,255,.35)', dashed: true, tip: false }],
-      yFmt: v => fmtNum(v), xLabels: series.length ? monthTicks(series[0].d, series[series.length - 1].d) : [],
-      tipFmt: p => `${fmtDay(p.d)}<b>${fmtNum(p.y, 1)} кг</b>расчётный максимум: ${fmtNum(p.e1, 1)}`,
-      empty: 'Нужна хотя бы одна тренировка с этим упражнением',
-    })}
-    ${series.length ? `<div class="legend mt"><span><i style="--c:${sec.color}"></i>Рабочий вес</span><span><i class="dash" style="--c:rgba(255,255,255,.5)"></i>Расчётный 1ПМ</span></div>` : ''}
+  <div class="grid g2 mt">
+    <div class="card">
+      <div class="card-h"><h3>${icon('chart', 18)} 12 недель</h3><span class="sub">цветом — недели в цель</span></div>
+      ${bars(weeks, { h: 110 })}
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>${icon('trophy', 18)} Твои рекорды</h3></div>
+      <div class="kv"><div><small>Самая долгая</small><b>${rec.longest && woMin(rec.longest) ? fmtNum(woMin(rec.longest)) : '—'}<span class="u">мин</span></b></div>
+        <div><small>Лучшая неделя</small><b>${rec.bestWeek}<span class="u">трен.</span></b></div>
+        <div><small>Лучший месяц</small><b>${fmtNum(rec.bestMonth)}<span class="u">мин</span></b></div>
+        <div><small>Лучшая серия</small><b>${woBestStreak()}<span class="u">нед.</span></b></div></div>
+      <div class="sub mt">Побьёшь рекорд длительности — получишь бонус к опыту.</div>
+    </div>
   </div>
-  <div class="card mt">
-    <div class="card-h"><h3>${icon('clock', 18)} Последние тренировки</h3></div>
-    ${WO.list.length ? `<div class="list">${[...WO.list].sort((a, b) => b.t - a.t).slice(0, 8).map(w => `<div class="li"><div class="ico-box sm">${icon('dumbbell', 16)}</div>
-      <div class="grow"><b>${w.items.map(i => esc(i.ex)).join(', ')}</b><small>${relDay(w.d)} · ${sum(w.items, i => i.sets.length)} подх. · ${fmtNum(sum(w.items.flatMap(i => i.sets), s => (+s.w || 0) * (+s.r || 0)))} кг объём</small></div>
-      <button class="icon-btn sm plain" data-act="delWorkout" data-id="${w.id}" aria-label="Удалить">${icon('trash', 15)}</button></div>`).join('')}</div>` : emptyState('dumbbell', 'Пока пусто')}
+  <div class="grid g2 mt">
+    <div class="card">
+      <div class="card-h"><h3>${icon('grid', 18)} Этот месяц</h3><span class="sub">${mList.length} трен. · ${fmtNum(sum(mList, woMin))} мин</span></div>
+      ${mix.length ? `<div class="stack">${mix.map(x => `<div><div class="row between" style="margin-bottom:6px"><span class="row" style="gap:8px">${icon(x.t.icon, 15)}${x.t.name}</span><span class="sub">${x.n} · ${fmtNum(x.min)} мин</span></div>${bar(x.n / mList.length, 'wo-mix-' + x.t.id, { color: sec.color })}</div>`).join('')}</div>`
+        : emptyState('dumbbell', 'В этом месяце тренировок ещё не было')}
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>${icon('clock', 18)} Последние тренировки</h3></div>
+      ${WO.list.length ? `<div class="list">${[...WO.list].sort((a, b) => b.d < a.d ? -1 : b.d > a.d ? 1 : b.t - a.t).slice(0, 6).map(w => { const t = woType(w); return `<div class="li"><div class="ico-box sm">${icon(t.icon, 16)}</div>
+        <div class="grow"><b>${t.name}${woMin(w) ? ` · ${woMin(w)} мин` : ''}</b><small>${relDay(w.d)}${w.effort ? ' · ' + WO_EFFORT[w.effort - 1].toLowerCase() : ''}</small></div>
+        <button class="icon-btn sm plain" data-act="delWorkout" data-id="${w.id}" aria-label="Удалить">${icon('trash', 15)}</button></div>`; }).join('')}</div>` : emptyState('dumbbell', 'Пока пусто')}
+    </div>
   </div>`;
 };
-INPUTS.pickExercise = el => { UI.exercise = el.value; };
+function woFormHtml() {
+  const D = woDraft;
+  return `<form data-form="saveWorkout" class="stack">
+    <div class="field"><span>Вид</span><input type="hidden" name="type" value="${D.type}"><div class="wo-types" data-dots="type">${WO_TYPES.map(t => `<button type="button" class="${D.type === t.id ? 'on' : ''}" data-act="dot" data-v="${t.id}">${icon(t.icon, 18)}<span>${t.name}</span></button>`).join('')}</div></div>
+    <div class="field"><span>Длительность, минут</span><div class="dots5" data-dots="min">${WO_MINUTES.map(m => `<button type="button" class="${D.min === m ? 'on' : ''}" data-act="dot" data-v="${m}">${m}</button>`).join('')}<input class="input wo-min" type="number" name="min" min="1" max="600" inputmode="numeric" value="${D.min}" data-input="woMin" placeholder="своё" aria-label="Своя длительность, минут"></div></div>
+    <div class="field"><span>Как прошла</span><input type="hidden" name="effort" value="${D.effort}"><div class="dots5" data-dots="effort">${WO_EFFORT.map((e, i) => `<button type="button" class="${D.effort === i + 1 ? 'on' : ''}" data-act="dot" data-v="${i + 1}">${e}</button>`).join('')}</div></div>
+    <label class="field"><span>Дата</span><input class="input" type="date" name="d" value="${today()}" max="${today()}"></label>
+    <button class="btn primary block">${icon('check', 16)}<span data-wo-xp>Записать · +${woXp(D.min, D.effort)} XP</span></button>
+  </form>`;
+}
+/* выбор в форме запоминается и пересчитывает опыт на кнопке */
+function woSyncForm(form) {
+  const f = new FormData(form);
+  woDraft.type = f.get('type'); woDraft.min = +f.get('min') || 0; woDraft.effort = +f.get('effort') || 2;
+  form.querySelectorAll('[data-dots="min"] button').forEach(b => b.classList.toggle('on', +b.dataset.v === woDraft.min));
+  const x = form.querySelector('[data-wo-xp]'); if (x) x.textContent = `Записать · +${woXp(woDraft.min, woDraft.effort)} XP`;
+}
+INPUTS.woMin = el => { woSyncForm(el.form); };
+const dotBase = ACTIONS.dot;
+ACTIONS.dot = el => { const r = dotBase(el), form = el.closest('form'); if (form && form.dataset.form === 'saveWorkout') woSyncForm(form); return r; };
 ACTIONS.woGoal = el => { S.workouts.weeklyGoal = clamp(S.workouts.weeklyGoal + +el.dataset.d, 1, 14); const qq = S.quests.find(x => x.auto === 'workout'); if (qq) qq.target = S.workouts.weeklyGoal; saveState(); };
-ACTIONS.newWorkout = () => {
-  const names = exerciseNames();
-  openModal(`${modalHead('Тренировка', 'Упражнение, вес, подходы и повторы')}
-    <form data-form="saveWorkout" id="woForm">
-      <datalist id="exList">${names.map(n => `<option value="${esc(n)}">`).join('')}${['Жим лёжа', 'Приседания', 'Становая тяга', 'Подтягивания', 'Жим стоя', 'Тяга штанги в наклоне'].filter(n => !names.includes(n)).map(n => `<option value="${n}">`).join('')}</datalist>
-      <div id="woItems" class="stack">${woItemHtml(0)}</div>
-      <button type="button" class="btn sm mt" data-act="woAddItem">${icon('plus', 14)} Упражнение</button>
-      <label class="field mt"><span>Дата</span><input class="input" type="date" name="d" value="${today()}" max="${today()}"></label>
-      <div class="modal-f"><button type="button" class="btn ghost" data-act="closeModal">Отмена</button><button class="btn primary">Сохранить · +30 XP</button></div>
-    </form>`, { wide: true });
-  return false;
-};
-function woItemHtml(i) {
-  return `<div class="card flat tight" data-item="${i}" style="border-radius:20px">
-    <label class="field"><span>Упражнение</span><input class="input" name="ex${i}" list="exList" placeholder="Жим лёжа" required ${i === 0 ? 'autofocus' : ''}></label>
-    <div class="sets mt">${[0, 1, 2].map(k => woSetHtml(i, k)).join('')}</div>
-    <button type="button" class="btn xs mt" data-act="woAddSet" data-i="${i}">${icon('plus', 13)} Подход</button>
-  </div>`;
-}
-function woSetHtml(i, k) {
-  return `<div class="set-row"><span>${k + 1}</span><input class="input" name="w${i}_${k}" type="number" step="0.5" min="0" inputmode="decimal" placeholder="кг"><input class="input" name="r${i}_${k}" type="number" min="0" inputmode="numeric" placeholder="повт."><button type="button" class="icon-btn sm plain" data-act="woDelSet">${icon('x', 14)}</button></div>`;
-}
-ACTIONS.woAddItem = () => { const box = $('#woItems'); box.insertAdjacentHTML('beforeend', woItemHtml(box.children.length)); return false; };
-ACTIONS.woAddSet = el => { const sets = el.previousElementSibling; sets.insertAdjacentHTML('beforeend', woSetHtml(el.dataset.i, sets.children.length)); return false; };
-ACTIONS.woDelSet = el => { el.closest('.set-row').remove(); return false; };
+ACTIONS.newWorkout = () => { openModal(modalHead('Тренировка', 'Вид, длительность и как прошла — этого достаточно') + woFormHtml()); return false; };
 FORMS.saveWorkout = (d, form) => {
-  const items = [];
-  form.querySelectorAll('[data-item]').forEach(box => {
-    const i = box.dataset.item, ex = (d['ex' + i] || '').trim(); if (!ex) return;
-    const sets = [];
-    box.querySelectorAll('.set-row').forEach(r => {
-      const [w, rep] = r.querySelectorAll('input');
-      if (w.value || rep.value) sets.push({ w: +w.value || 0, r: +rep.value || 0 });
-    });
-    if (sets.length) items.push({ ex: ex[0].toUpperCase() + ex.slice(1), sets });
-  });
-  if (!items.length) { toast({ icon: 'alert', title: 'Добавь хотя бы один подход' }); return false; }
-  const prs = [];
-  for (const it of items) {
-    const prev = exerciseBest(it.ex), best = Math.max(...it.sets.map(s => s.w));
-    if (best > 0 && prev > 0 && best > prev) prs.push({ ex: it.ex, w: best, prev });
-    if (best > 0 && best >= prev) S.workouts.prs[it.ex.toLowerCase()] = { w: best, d: d.d || today() };
+  const min = clamp(Math.round(+d.min || 0), 0, 600);
+  if (!min) { toast({ icon: 'alert', title: 'Укажи длительность' }); return false; }
+  const type = WO_TYPES.some(t => t.id === d.type) ? d.type : 'strength', effort = clamp(+d.effort || 2, 1, 3), date = d.d || today();
+  const prevLongest = woMin(woRecords().longest || {});
+  const goal = S.workouts.weeklyGoal, ws = weekStart(date), before = woWeekCount(ws);
+  S.workouts.list.push({ id: uid(), d: date, t: Date.now(), type, min, effort });
+  Object.assign(woDraft, { type, min, effort });
+  if (form.closest('.modal')) closeModal(true);
+  tracker('workout', woXp(min, effort), `${WO_TYPES.find(t => t.id === type).name} · ${min} мин`, ['workout']);
+  if (prevLongest && min > prevLongest) {
+    emit({ k: 'tracker', s: 'workout', xp: 20, note: `Рекорд: ${min} мин`, tags: ['pr'], extra: { pr: true } });
+    pushFx({ type: 'toast', icon: 'trophy', title: 'Новый рекорд длительности', text: `${min} мин — было ${prevLongest}. +20 XP` });
   }
-  S.workouts.list.push({ id: uid(), d: d.d || today(), t: Date.now(), items });
-  closeModal(true);
-  tracker('workout', 30, 'Тренировка', ['workout']);
-  for (const p of prs) {
-    emit({ k: 'tracker', s: 'workout', xp: 25, note: `Рекорд: ${p.ex}`, tags: ['pr'], extra: { pr: true } });
-    pushFx({ type: 'pr', ...p });
+  if (before < goal && before + 1 >= goal && ws === weekStart()) {
+    const st = woWeekStreak();
+    pushFx({ type: 'toast', icon: 'flame', title: 'Цель недели взята', text: st > 1 ? `Серия: ${st} ${plural(st, ['неделя', 'недели', 'недель'])} подряд` : 'Начало серии недель' });
   }
   autoQuest('workout');
   afterChange();
