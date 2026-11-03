@@ -141,10 +141,10 @@ function newDraft() {
   return d;
 }
 function applySectionDefaults(d, sec) {
-  const map = { weight: ['reach', 'weight'], workout: ['reach', 'exercise'], reading: ['count', 'pages'], meditation: ['count', 'med_minutes'], abstinence: ['endure', 'abst'], journal: ['endure', 'journal_streak'], gratitude: ['endure', 'gratitude_streak'], content: ['count', 'publications'], custom: ['count', 'tasks'] };
+  const map = { weight: ['reach', 'weight'], workout: ['count', 'workouts'], reading: ['count', 'pages'], meditation: ['count', 'med_minutes'], abstinence: ['endure', 'abst'], journal: ['endure', 'journal_streak'], gratitude: ['endure', 'gratitude_streak'], content: ['count', 'publications'], custom: ['count', 'tasks'] };
   [d.type, d.metric] = map[sec.type] || map.custom;
   d.stats = [sec.stat];
-  d.rules = sec.type === 'workout' ? { task: 1, workout: 2, pr: 3 } : sec.type === 'reading' ? { task: 1, reading: 1 } : sec.type === 'meditation' ? { task: 1, meditation: 1 } : sec.type === 'journal' ? { task: 1, journal: 1 } : sec.type === 'content' ? { task: 1, publish: 2, content: 1 } : { task: 1 };
+  d.rules = sec.type === 'workout' ? { task: 1, workout: 2, pr: 2 } : sec.type === 'reading' ? { task: 1, reading: 1 } : sec.type === 'meditation' ? { task: 1, meditation: 1 } : sec.type === 'journal' ? { task: 1, journal: 1 } : sec.type === 'content' ? { task: 1, publish: 2, content: 1 } : { task: 1 };
   d.icon = { weight: 'mountain', workout: 'dumbbell', reading: 'book', meditation: 'lotus', abstinence: 'ban', journal: 'pen', gratitude: 'sparkle', content: 'video' }[sec.type] || 'skull';
   d.color = sec.color;
   setDraftArg(d);
@@ -179,7 +179,7 @@ function renderBossForm() {
       <div class="card"><div class="card-h"><h3>${icon('target', 18)} Цель</h3></div>
         <div class="field mb"><span>Тип цели</span>${segmented('bdType', [['reach', 'Дойти до значения'], ['count', 'Набрать количество'], ['endure', 'Продержаться']], d.type, 'full')}</div>
         <div class="form-grid">
-          <label class="field ${argField ? '' : 'full'}"><span>Что измеряем</span><select class="input" name="metric" data-change="bdc">${ms.map(m => `<option value="${m.id}" ${m.id === d.metric ? 'selected' : ''}>${m.name}</option>`).join('')}</select></label>
+          <label class="field ${argField ? '' : 'full'}"><span>Что измеряем</span><select class="input" name="metric" data-change="bdc">${ms.filter(m => !m.hidden || m.id === d.metric).map(m => `<option value="${m.id}" ${m.id === d.metric ? 'selected' : ''}>${m.name}</option>`).join('')}</select></label>
           ${argField}
           <label class="field"><span>Старт${unit ? ', ' + unit : ''}</span><input class="input" type="number" step="any" name="start" value="${d.start}" data-input="bd"></label>
           <label class="field"><span>Цель${unit ? ', ' + unit : ''}</span><input class="input" type="number" step="any" name="target" value="${d.target}" data-input="bd" placeholder="${d.type === 'endure' ? '90' : ''}"></label>
