@@ -90,7 +90,7 @@ function defaultState() {
       minTasks: 1, maxShields: 3, sound: true,
     },
     lastOpen: null,
-    migrations: ['content', 'content2', 'content3'],
+    migrations: ['content', 'content2', 'content3', 'workout2'],
   };
 }
 
@@ -152,6 +152,11 @@ function migrate(s) {
     if (!Array.isArray(c.accounts) || c.accounts.join() === 'ARETE 1,ARETE 2,ARETE 3') c.accounts = CONTENT_DEFAULT().accounts;
     s.content = c;
     s.migrations.push('content2', 'content3');
+  }
+  // тренировки стали проще: вид и длительность вместо упражнений; старые записи считаем силовыми
+  if (!s.migrations.includes('workout2')) {
+    for (const w of (s.workouts || {}).list || []) if (!w.type) w.type = 'strength';
+    s.migrations.push('workout2');
   }
   s.content = { ...CONTENT_DEFAULT(), ...s.content };
   const cq = s.quests.find(x => x.auto === 'carousel' && !x.archived);
