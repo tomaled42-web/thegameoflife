@@ -149,6 +149,7 @@ document.addEventListener('pointerout', e => {
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
 ACTIONS.nav = el => { go(el.dataset.to); return false; };
+ACTIONS.questUndo = el => { const qq = S.quests.find(x => x.id === el.dataset.id); if (qq) undoQuest(qq); };
 ACTIONS.quest = el => {
   const id = el.dataset.id;
   const qq = S.quests.find(x => x.id === id);
