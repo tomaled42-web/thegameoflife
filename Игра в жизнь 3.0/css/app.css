@@ -200,7 +200,7 @@ a { color: inherit; text-decoration: none; }
 .seg.full button { flex: 1; }
 
 /* ---------- задания ---------- */
-.quests { display: grid; gap: 6px; }
+.quests { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
 .quest { display: flex; align-items: center; gap: 14px; padding: 12px 14px 12px 12px; border-radius: 18px; background: rgba(255,255,255,.025); border: 1px solid transparent; transition: background .25s, border-color .25s, opacity .3s; cursor: pointer; user-select: none; min-height: 62px; }
 .quest:hover { background: rgba(255,255,255,.045); border-color: var(--line); }
 .quest .chk { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--line-2); display: grid; place-items: center; flex: none; color: transparent; transition: .35s var(--ease); position: relative; }
@@ -218,8 +218,8 @@ a { color: inherit; text-decoration: none; }
 .quest .qprog i { height: 3px; flex: 1; max-width: 26px; border-radius: 2px; background: rgba(255,255,255,.1); }
 .quest .qprog i.on { background: var(--qc, var(--text)); }
 .quest .q-ic { color: var(--qc, var(--muted)); opacity: .9; }
-.quest .q-undo { color: var(--dim); margin-right: -4px; }
-.quest .q-undo:hover { color: var(--text); }
+.quest .q-undo { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px; margin: -3px 0; border-radius: 999px; font-size: 11.5px; color: var(--muted); background: rgba(255,255,255,.05); border: 1px solid var(--line); }
+.quest .q-undo:hover { color: var(--text); border-color: var(--line-2); }
 .streak-mini { display: inline-flex; align-items: center; gap: 3px; color: var(--muted); }
 @keyframes pop { 0% { transform: scale(.8); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
 @keyframes ripple { 0% { opacity: .8; transform: scale(.7); } 100% { opacity: 0; transform: scale(1.5); } }
