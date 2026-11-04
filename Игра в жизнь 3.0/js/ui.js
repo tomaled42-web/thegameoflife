@@ -218,10 +218,10 @@ function questRow(qq, o = {}) {
   const multi = qq.kind !== 'goal' && qq.target > 1;
   const prog = multi ? `<div class="qprog">${Array.from({ length: qq.target }, (_, i) => `<i class="${i < st.count ? 'on' : ''}"></i>`).join('')}</div>` : '';
   // в задании из нескольких отметок лишнюю можно снять в любой момент, а не только когда всё выполнено
-  const undo = multi && st.count > 0 ? `<button class="icon-btn sm plain q-undo" data-act="questUndo" data-id="${qq.id}" aria-label="Снять одну отметку" title="Снять одну отметку">${icon('undo', 15)}</button>` : '';
+  const undo = multi && st.count > 0 ? `<button type="button" class="q-undo" data-act="questUndo" data-id="${qq.id}" aria-label="Снять одну отметку">${icon('undo', 12)}снять</button>` : '';
   return `<div class="quest ${st.done ? 'done' : ''} ${o.just === qq.id ? 'just' : ''}" style="--qc:${sec.color}" data-act="quest" data-id="${qq.id}" role="button" aria-pressed="${st.done}">
     <div class="chk">${icon('check', 16)}</div>
-    <div class="qt"><b>${esc(qq.title)}</b><small>${o.showSection ? `<span>${esc(sec.name)}</span>` : ''}${kindLbl ? `<span>${kindLbl}</span>` : ''}${streak}</small>${prog}</div>
-    ${undo}${o.edit ? `<button class="icon-btn sm plain" data-act="editQuest" data-id="${qq.id}" aria-label="Изменить">${icon('dots', 16)}</button>` : `<span class="qx">+${xp} XP</span>`}
+    <div class="qt"><b>${esc(qq.title)}</b><small>${o.showSection ? `<span>${esc(sec.name)}</span>` : ''}${kindLbl ? `<span>${kindLbl}</span>` : ''}${undo}${streak}</small>${prog}</div>
+    ${o.edit ? `<button class="icon-btn sm plain" data-act="editQuest" data-id="${qq.id}" aria-label="Изменить">${icon('dots', 16)}</button>` : `<span class="qx">+${xp} XP</span>`}
   </div>`;
 }
