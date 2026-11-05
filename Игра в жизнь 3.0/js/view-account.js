@@ -10,9 +10,34 @@ function openLogin(sub = 'Прогресс будет храниться в об
       <label class="field"><span>Почта</span><input class="input" type="email" name="email" value="${esc(loginEmail)}" placeholder="you@mail.ru" autocomplete="email" required autofocus></label>
       <button class="btn primary block">Получить код</button>
       <div class="sub">Пароль не нужен: пришлём код из 6 цифр. Если аккаунта ещё нет — он создастся.</div>
+      <div class="row" style="justify-content:center"><button type="button" class="btn ghost sm" data-act="loginPass">Войти по паролю</button></div>
     </form>`);
 }
 ACTIONS.login = () => { openLogin(); return false; };
+/* вход по паролю — для аккаунтов, которым пароль задан вручную (например, тестовый для проверки) */
+ACTIONS.loginPass = () => {
+  openModal(`${modalHead('Вход по паролю', 'Если пароля нет — войди по коду из письма.')}
+    <form data-form="loginPass" class="stack">
+      <label class="field"><span>Почта</span><input class="input" type="email" name="email" value="${esc(loginEmail)}" autocomplete="username" required autofocus></label>
+      <label class="field"><span>Пароль</span><input class="input" type="password" name="password" autocomplete="current-password" required></label>
+      <button class="btn primary block">Войти</button>
+      <div class="row" style="justify-content:center"><button type="button" class="btn ghost sm" data-act="login">Войти по коду</button></div>
+    </form>`);
+  return false;
+};
+FORMS.loginPass = async (d, form) => {
+  loginEmail = d.email.trim().toLowerCase();
+  const btn = form.querySelector('button.primary'); btn.disabled = true; btn.textContent = 'Проверяем…';
+  try {
+    await cloudSignInPassword(loginEmail, d.password);
+    closeModal(true);
+    toast({ icon: 'check', title: 'Готово, ты в аккаунте', text: 'Прогресс сохраняется в облаке' });
+  } catch (e) {
+    btn.disabled = false; btn.textContent = 'Войти';
+    toast({ icon: 'alert', title: 'Не удалось войти', text: 'Проверь почту и пароль' });
+  }
+  return false;
+};
 FORMS.loginEmail = async (d, form) => {
   loginEmail = d.email.trim().toLowerCase();
   const btn = form.querySelector('button'); btn.disabled = true; btn.textContent = 'Отправляем…';
