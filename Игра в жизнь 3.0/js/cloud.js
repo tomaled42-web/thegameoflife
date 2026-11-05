@@ -50,6 +50,10 @@ async function cloudVerify(email, token) {
   const { error } = await Cloud.sb.auth.verifyOtp({ email, token, type: 'email' });
   if (error) throw error;
 }
+async function cloudSignInPassword(email, password) {
+  const { error } = await Cloud.sb.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+}
 async function cloudSignOut() {
   if (Cloud.dirty) await cloudPush();
   await Cloud.sb.auth.signOut();
