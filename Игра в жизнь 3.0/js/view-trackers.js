@@ -628,8 +628,8 @@ TRACKERS.content = sec => {
         ${ring(target ? done / target : 0, { size: 132, stroke: 8, key: 'c-ring', color: sec.color, glow: true, center: `<div><div class="num num-m">${done}<span class="fade">/${target}</span></div><div class="sub">сегодня</div></div>` })}
         <div class="grow" style="min-width:200px">
           <div class="acc-grid">${C.accounts.map((a, i) => { const n = postsOn(t).filter(p => p.acc === a).length, ok = n >= C.perAccount;
-            return `<button class="acc ${ok ? 'on' : ''}" data-act="cPost" data-i="${i}"><span class="acc-chk">${icon('check', 14)}</span><b>${esc(a)}</b><small>${n}/${C.perAccount}</small></button>`; }).join('')}</div>
-          <div class="sub" style="margin-top:10px">Нажми на площадку, когда опубликовал. Повторное нажатие снимает отметку.</div>
+            return `<div class="acc-cell"><button class="acc ${ok ? 'on' : ''}" data-act="cPost" data-i="${i}"><span class="acc-chk">${icon('check', 14)}</span><b>${esc(a)}</b><small>${n}/${C.perAccount}</small></button>${n ? `<button type="button" class="acc-minus" data-act="cUnpost" data-i="${i}" aria-label="Снять одну публикацию">${icon('minus', 13)}</button>` : ''}</div>`; }).join('')}</div>
+          <div class="sub" style="margin-top:10px">Нажми на площадку, когда опубликовал. Лишнюю отметку снимает «−» в углу.</div>
         </div>
       </div>
       <div class="hr"></div>
@@ -667,18 +667,22 @@ function bestAllAccounts() {
   for (const d of days) { if (postsOn(d).length < tgt) { run = 0; prev = d; continue; } run = prev && addDays(prev, 1) === d && run ? run + 1 : 1; best = Math.max(best, run); prev = d; }
   return best;
 }
+/* снять последнюю сегодняшнюю публикацию на площадке — вместе с XP, запасом и отметкой задания */
+function unpost(acc) {
+  const C = S.content, t = today();
+  const mine = C.posts.filter(p => p.d === t && p.acc === acc);
+  const p = mine[mine.length - 1]; if (!p) return;
+  C.posts.splice(C.posts.indexOf(p), 1);
+  if (p.fromStock) C.stock++;
+  const ev = S.events.find(e => e.id === p.ev); if (ev) removeEvent(ev);
+  const qq = S.quests.find(x => x.auto === 'carousel' && !x.archived);
+  if (qq && questStatus(qq).count > postsOn(t).length) undoQuest(qq);
+  afterChange();
+}
+ACTIONS.cUnpost = el => unpost(S.content.accounts[+el.dataset.i]);
 ACTIONS.cPost = el => {
   const C = S.content, acc = C.accounts[+el.dataset.i], t = today();
-  const mine = C.posts.filter(p => p.d === t && p.acc === acc);
-  const qq = S.quests.find(x => x.auto === 'carousel' && !x.archived);
-  if (mine.length >= C.perAccount) {
-    const p = mine[mine.length - 1];
-    C.posts.splice(C.posts.indexOf(p), 1);
-    if (p.fromStock) C.stock++;
-    const ev = S.events.find(e => e.id === p.ev); if (ev) removeEvent(ev);
-    if (qq && questStatus(qq).count > postsOn(t).length) undoQuest(qq);
-    afterChange(); return;
-  }
+  if (C.posts.filter(p => p.d === t && p.acc === acc).length >= C.perAccount) { unpost(acc); return; }
   const fromStock = C.stock > 0; if (fromStock) C.stock--;
   const ev = tracker('content', 15, 'Публикация · ' + acc, ['publish']);
   C.posts.push({ d: t, t: Date.now(), acc, fromStock, ev: ev.id });
