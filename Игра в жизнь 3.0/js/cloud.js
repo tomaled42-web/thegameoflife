@@ -6,7 +6,7 @@ const CLOUD_KEY = 'sb_publishable_s20--dldNQVRtjh_HHX-IA_KHw8WvyM';   // пуб�
 
 /* Подписка. paywall: true — включить замки на платных разделах (когда заработает оплата).
    payments: true — кнопка «Оформить» ведёт на оплату. */
-const BILLING = { paywall: false, payments: false };
+const BILLING = { paywall: true, payments: true };
 const PRICES = { month: 199, year: 1490 };
 const FREE_SECTIONS = 4;
 
