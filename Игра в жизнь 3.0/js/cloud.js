@@ -33,7 +33,10 @@ function cloudInit() {
     const u = session ? session.user : null;
     const changed = (u && u.id) !== (Cloud.user && Cloud.user.id);
     Cloud.user = u;
+    if (u) forgetLoginStep();
     if (!u) { Cloud.profile = null; Cloud.status = 'off'; }
+    // ушёл в почту за кодом, а приложение перезапустилось — сразу возвращаем окно ввода кода
+    if (event === 'INITIAL_SESSION' && !u && typeof resumeLogin === 'function') setTimeout(resumeLogin, 0);
     if (changed && u) setTimeout(onSignedIn, 0);   // вызовы Supabase нельзя делать прямо внутри обработчика
     else if (changed) safeRender();
   });
@@ -42,6 +45,16 @@ function cloudInit() {
 }
 
 /* ---------- вход по коду из письма ---------- */
+/* шаг «код отправлен» помним 15 минут: столько живёт код */
+const LOGIN_KEY = 'lifegame.loginStep';
+function rememberLoginStep(email) { try { localStorage.setItem(LOGIN_KEY, JSON.stringify({ email, t: Date.now() })); } catch (e) { } }
+function forgetLoginStep() { try { localStorage.removeItem(LOGIN_KEY); } catch (e) { } }
+function pendingLoginStep() {
+  try {
+    const s = JSON.parse(localStorage.getItem(LOGIN_KEY) || 'null');
+    return s && s.email && Date.now() - s.t < 15 * 60 * 1000 ? s : null;
+  } catch (e) { return null; }
+}
 async function cloudSendCode(email) {
   const { error } = await Cloud.sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true, emailRedirectTo: location.origin + location.pathname } });
   if (error) throw error;
