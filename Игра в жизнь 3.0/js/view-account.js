@@ -5,6 +5,7 @@
 let loginEmail = '';
 function openLogin(sub = 'Прогресс будет храниться в облаке и не потеряется при смене телефона.') {
   if (!Cloud.sb) { toast({ icon: 'alert', title: 'Облако недоступно', text: 'Проверь интернет и попробуй ещё раз' }); return; }
+  forgetLoginStep();
   openModal(`${modalHead('Вход', sub)}
     <form data-form="loginEmail" class="stack">
       <label class="field"><span>Почта</span><input class="input" type="email" name="email" value="${esc(loginEmail)}" placeholder="you@mail.ru" autocomplete="email" required autofocus></label>
@@ -47,12 +48,20 @@ FORMS.loginEmail = async (d, form) => {
     toast({ icon: 'alert', title: 'Не удалось отправить код', text: /rate|limit|seconds/i.test(e.message) ? 'Слишком часто. Подожди минуту и попробуй снова.' : e.message });
     return false;
   }
+  rememberLoginStep(loginEmail);
   showCodeStep();
   return false;
 };
+/* вызывается при запуске, если пользователь ещё не вошёл, но недавно запросил код */
+function resumeLogin() {
+  const s = pendingLoginStep();
+  if (!s || Cloud.user) return;
+  loginEmail = s.email;
+  showCodeStep();
+}
 let resendTimer = null;
 function showCodeStep() {
-  openModal(`${modalHead('Код из письма', `Отправили код на ${esc(loginEmail)}. Письмо может прийти в «Спам».`)}
+  openModal(`${modalHead('Код из письма', `Отправили код на ${esc(loginEmail)}. Письмо может прийти в «Спам». Можно спокойно перейти в почту — это окно дождётся.`)}
     <form data-form="loginCode" class="stack">
       <input class="input" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="000000" required autofocus data-input="codeInput" style="text-align:center;font-size:26px;letter-spacing:.3em;height:60px">
       <button class="btn primary block">Войти</button>
