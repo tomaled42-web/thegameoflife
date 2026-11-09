@@ -96,7 +96,8 @@ function enterDemo() {
   DEMO = true;
   eventsVersion++;
   try { S.bosses.push(demoBoss()); } catch (e) { console.warn('demo boss', e); }
-  try { checkAchievements(true); } catch (e) { }
+  // уже пройденные фазы босса и заработанные достижения засчитываем сразу, а не на первом нажатии
+  try { checkBosses(); checkAchievements(true); } catch (e) { }
   FX.length = 0;
   document.body.classList.add('demo');
   showDemoBar();
