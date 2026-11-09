@@ -1,9 +1,9 @@
 /* Сервис-воркер: офлайн-режим и фоновые напоминания */
-const VERSION = 'lifegame-v20';
+const VERSION = 'lifegame-v21';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'js/util.js', 'js/store.js', 'js/engine.js', 'js/charts.js', 'js/ui.js',
-  'js/cloud.js', 'js/view-home.js', 'js/view-sections.js', 'js/view-trackers.js', 'js/view-arena.js', 'js/view-stats.js', 'js/view-account.js', 'js/app.js',
+  'js/cloud.js', 'js/view-home.js', 'js/view-sections.js', 'js/view-trackers.js', 'js/view-arena.js', 'js/view-stats.js', 'js/view-account.js', 'js/onboarding.js', 'js/app.js',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
 ];
 
