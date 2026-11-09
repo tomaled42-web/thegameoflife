@@ -104,8 +104,7 @@ function chainRow(n) {
 
 function levelCard() {
   const li = levelInfo(), t = today();
-  const todayXp = sum(S.events.filter(e => e.d === t), e => e.xp);
-  const yXp = sum(S.events.filter(e => e.d === addDays(t, -1)), e => e.xp);
+  const todayXp = xpOn(t), yXp = xpOn(addDays(t, -1));
   const nt = nextTitle(li.level);
   const top = STATS.map(s => ({ ...s, xp: S.statXp[s.id] || 0 })).sort((a, b) => b.xp - a.xp).slice(0, 3);
   return `<div class="card">
@@ -165,7 +164,7 @@ function weekCard() {
   const w = weekSummary(), ws = weekStart();
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = addDays(ws, i);
-    return { v: sum(S.events.filter(e => e.d === d), e => e.xp), label: WD[i], cur: d === today(), title: fmtDay(d) };
+    return { v: xpOn(d), label: WD[i], cur: d === today(), title: fmtDay(d) };
   });
   const rankTxt = w.total < 2 ? 'Твоя первая неделя в игре' : w.rank === 1 ? 'Это твоя лучшая неделя' : `Это твоя ${w.rank}-я лучшая неделя из ${w.total}`;
   return `<div class="card">
