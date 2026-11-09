@@ -170,6 +170,7 @@ function saveState() {
   saveTimer = setTimeout(saveNow, 120);
 }
 function saveNow() {
+  if (typeof DEMO !== 'undefined' && DEMO) return;   // демо-герой нигде не сохраняется
   try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (e) { console.warn('save failed', e); }
   writeStatusForSW();
   if (typeof cloudSchedule === 'function') cloudSchedule();
