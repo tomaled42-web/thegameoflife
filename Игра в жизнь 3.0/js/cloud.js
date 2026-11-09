@@ -114,7 +114,7 @@ function applyRemote(remote, reason = 'перед загрузкой из обл
 }
 /* подтянуть изменения с другого устройства */
 async function cloudRefresh() {
-  if (!Cloud.user || Cloud.dirty || Date.now() - Cloud.lastPull < 30000) return;
+  if (!Cloud.user || (typeof DEMO !== 'undefined' && DEMO) || Cloud.dirty || Date.now() - Cloud.lastPull < 30000) return;
   Cloud.lastPull = Date.now();
   try {
     loadProfile();
@@ -169,7 +169,7 @@ function chooseVersion(remote) {
 
 /* ---------- подписка ---------- */
 function premiumState() {
-  if (!BILLING.paywall) return { active: true, kind: 'open' };
+  if (!BILLING.paywall || (typeof DEMO !== 'undefined' && DEMO)) return { active: true, kind: 'open' };
   const p = Cloud.profile, now = Date.now();
   if (p && p.premium_until && new Date(p.premium_until) > now) return { active: true, kind: 'premium', until: p.premium_until };
   if (p && p.trial_until && new Date(p.trial_until) > now) return { active: true, kind: 'trial', until: p.trial_until };
