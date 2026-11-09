@@ -173,42 +173,82 @@ function nextTourStep() {
   if (location.hash.replace(/^#\/?/, '') !== st.route) go(st.route);
   setTimeout(() => showTourStep(st), 380);
 }
+/* слой обучения создаётся один раз: затемнение, рамка и подсказка между шагами не пересоздаются, а перетекают */
+function tourLayer() {
+  let ov = document.getElementById('tour');
+  if (ov) return ov;
+  ov = document.createElement('div'); ov.id = 'tour'; ov.className = 'init';
+  ov.innerHTML = `<div class="tour-veil"></div><div class="tour-ring"></div>
+    <div class="tour-tip"><div class="tour-body"></div>
+      <div class="row between"><button class="btn ghost sm" data-act="tourSkip">Пропустить</button><button class="btn primary sm" data-act="tourNext"><span class="tour-next">Дальше</span> ${icon('chevR', 14)}</button></div></div>`;
+  document.body.appendChild(ov);
+  return ov;
+}
+const hole = (x1, y1, x2, y2) => `polygon(evenodd,0 0,100% 0,100% 100%,0 100%,0 0,${x1}px ${y1}px,${x1}px ${y2}px,${x2}px ${y2}px,${x2}px ${y1}px,${x1}px ${y1}px)`;
+let tourBusy = false;
 function showTourStep(st) {
   const target = st.el();
   if (!target) { nextTourStep(); return; }
-  target.scrollIntoView({ block: 'center', behavior: 'instant' });
+  tourBusy = true;
+  const ov = tourLayer(), tip = ov.querySelector('.tour-tip'), body = ov.querySelector('.tour-body');
+  ov.classList.add('moving');
+  body.classList.add('out');
+  // плавно докручиваем страницу к цели, а когда она встала — перетекаем рамкой и подсказкой
+  const r0 = target.getBoundingClientRect();
+  const need = r0.top < 70 || r0.bottom > innerHeight - 90;
+  if (need) target.scrollIntoView({ block: 'center', behavior: 'smooth' });
   setTimeout(() => {
-    let ov = document.getElementById('tour');
-    if (!ov) { ov = document.createElement('div'); ov.id = 'tour'; document.body.appendChild(ov); }
     const r = target.getBoundingClientRect(), pad = 8, vw = innerWidth, vh = innerHeight;
     const x1 = Math.max(4, r.left - pad), y1 = Math.max(4, r.top - pad), x2 = Math.min(vw - 4, r.right + pad), y2 = Math.min(vh - 4, r.bottom + pad);
+    ov.querySelector('.tour-veil').style.clipPath = hole(x1, y1, x2, y2);
+    Object.assign(ov.querySelector('.tour-ring').style, { left: x1 + 'px', top: y1 + 'px', width: x2 - x1 + 'px', height: y2 - y1 + 'px' });
+    body.innerHTML = `<div class="tour-dots">${TOUR.map((_, i) => `<i class="${i === tourStep ? 'on' : i < tourStep ? 'done' : ''}"></i>`).join('')}</div><h3>${st.title}</h3><p>${st.text}</p>`;
+    ov.querySelector('.tour-next').textContent = tourStep === TOUR.length - 1 ? 'Готово' : 'Дальше';
     // подсказка под целью, над ней или, если цель крупная, внизу экрана поверх неё
-    const tipPos = vh - y2 > 240 ? `top:${y2 + 14}px` : y1 > 240 ? `bottom:${vh - y1 + 14}px` : `bottom:calc(16px + var(--safe-b))`;
-    ov.innerHTML = `<div class="tour-veil" style="clip-path:polygon(evenodd,0 0,100% 0,100% 100%,0 100%,0 0,${x1}px ${y1}px,${x1}px ${y2}px,${x2}px ${y2}px,${x2}px ${y1}px,${x1}px ${y1}px)"></div>
-      <div class="tour-ring" style="left:${x1}px;top:${y1}px;width:${x2 - x1}px;height:${y2 - y1}px"></div>
-      <div class="tour-tip" style="${tipPos}">
-        <div class="tour-dots">${TOUR.map((_, i) => `<i class="${i === tourStep ? 'on' : i < tourStep ? 'done' : ''}"></i>`).join('')}</div>
-        <h3>${st.title}</h3><p>${st.text}</p>
-        <div class="row between"><button class="btn ghost sm" data-act="tourSkip">Пропустить</button><button class="btn primary sm" data-act="tourNext">${tourStep === TOUR.length - 1 ? 'Готово' : 'Дальше'} ${icon('chevR', 14)}</button></div>
-      </div>`;
-  }, 260);
+    const th = tip.offsetHeight, bottomGap = 16 + (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-b')) || 0);
+    const top = vh - y2 > th + 24 ? y2 + 14 : y1 > th + 24 ? y1 - 14 - th : vh - th - bottomGap;
+    tip.style.top = Math.round(top) + 'px';
+    body.classList.remove('out');
+    ov.classList.remove('moving');
+    // первый шаг появляется на месте, без «прилёта» рамки из угла
+    if (ov.classList.contains('init')) { void ov.offsetWidth; setTimeout(() => ov.classList.remove('init'), 40); }
+    tourBusy = false;
+  }, need ? 520 : 60);
 }
-function endTour(silent) {
-  tourStep = -1;
-  const ov = document.getElementById('tour'); if (ov) ov.remove();
+function endTour() {
+  tourStep = -1; tourBusy = false;
+  const ov = document.getElementById('tour'); if (!ov) return;
+  ov.removeAttribute('id'); ov.classList.add('leaving');
+  setTimeout(() => ov.remove(), 320);
 }
+/* финал обучения: свой прогресс начинается с имени, затем — предложение подписки */
 function finishTour() {
   endTour();
-  openModal(`<div class="welcome">
+  exitDemo();
+  const html = `<div class="welcome">
       <div class="welcome-art"><div class="orb-demo">${icon('trophy', 34)}</div></div>
       <div class="eyebrow">Это может быть твой прогресс</div>
       <h2>Через 2 месяца: 29 дней в серии, 17 уровень и −6 кг</h2>
-      <p class="muted">Начни с одного задания сегодня. Первые 7 дней открыто всё — бесплатно.</p>
-      <button class="btn primary block" data-act="demoStart">${icon('sparkle', 16)} Начать свою игру</button>
-      <button class="btn ghost block" style="margin-top:8px" data-act="tourStay">Ещё посмотреть демо</button>
-    </div>`, { onClose: () => { } });
+      <p class="muted">Начни с одного задания сегодня — дальше игра сама поведёт.</p>
+      ${S.profile.name ? `<button class="btn primary block" data-act="tourOffer">${icon('sparkle', 16)} Дальше</button>`
+        : `<form data-form="tourName" class="stack" style="text-align:left">
+        <label class="field"><span>Как к тебе обращаться?</span><input class="input" name="name" placeholder="Имя" maxlength="24" required></label>
+        <button class="btn primary block">${icon('sparkle', 16)} Начать свою игру</button></form>`}
+    </div>`;
+  setTimeout(() => openModal(html, { onClose: () => { } }), 200);
 }
-ACTIONS.tourNext = () => { nextTourStep(); return false; };
+FORMS.tourName = d => {
+  S.profile.name = (d.name || '').trim() || 'Герой';
+  saveState();
+  toast({ icon: 'sparkle', title: `Привет, ${S.profile.name}`, text: 'Отметь первое задание — и импульс загорится.' });
+  afterTourOffer();
+  return false;
+};
+ACTIONS.tourOffer = () => { afterTourOffer(); return false; };
+function afterTourOffer() {
+  if (BILLING.paywall && premiumState().kind !== 'premium') showWelcomeOffer();
+  else closeModal();
+}
+ACTIONS.tourNext = () => { if (!tourBusy) nextTourStep(); return false; };
 ACTIONS.tourSkip = () => { finishTour(); return false; };
-ACTIONS.tourStay = () => { closeModal(true); toast({ icon: 'eye', title: 'Смотри сколько хочешь', text: 'Когда будешь готов — «Начать свою» вверху экрана.' }); return false; };
-window.addEventListener('resize', () => { if (tourStep >= 0 && TOUR[tourStep]) showTourStep(TOUR[tourStep]); });
+window.addEventListener('resize', () => { if (tourStep >= 0 && TOUR[tourStep] && !tourBusy) showTourStep(TOUR[tourStep]); });
