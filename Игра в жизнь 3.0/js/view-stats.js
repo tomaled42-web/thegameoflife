@@ -32,7 +32,7 @@ function renderStats() {
     }
     return { pts, color: STAT_COLORS[s.id], width: 1.6, name: s.name };
   }).filter(s => s.pts.some(p => p.y > 0));
-  const tr = weightTrend().filter(x => x.d >= from);
+  const tr = sortedWeights().filter(x => x.d >= from);
   const moods = Object.entries(S.journal).filter(([k, v]) => k >= from && v.mood).sort();
   const weeks = Object.entries(xpByWeek()).sort((a, b) => b[1] - a[1]);
 
@@ -65,8 +65,8 @@ function renderStats() {
       <div class="legend mt">${statSeries.map(s => `<span><i style="--c:${s.color}"></i>${s.name}</span>`).join('')}</div>
     </div>
     <div class="card">
-      <div class="card-h"><h3>${icon('scale', 18)} Вес</h3>${tr.length > 1 ? deltaBadge(tr[tr.length - 1].trend - tr[0].trend, { digits: 1, suffix: ' кг', invert: true }) : ''}</div>
-      ${lineChart({ id: 'sw', h: 200, series: [{ pts: tr.map(p => ({ x: dayIdx(p.d), y: p.trend, d: p.d })), color: '#8fdcc0', fill: true, width: 2 }], yFmt: v => fmtNum(v),
+      <div class="card-h"><h3>${icon('scale', 18)} Вес</h3>${tr.length > 1 ? deltaBadge(tr[tr.length - 1].kg - tr[0].kg, { digits: 1, suffix: ' кг', invert: true }) : ''}</div>
+      ${lineChart({ id: 'sw', h: 200, series: [{ pts: tr.map(p => ({ x: dayIdx(p.d), y: p.kg, d: p.d })), color: '#8fdcc0', fill: true, width: 2 }], yFmt: v => fmtNum(v),
         xLabels: tr.length ? monthTicks(tr[0].d, tr[tr.length - 1].d, 4) : [], tipFmt: p => `${fmtDay(p.d)}<b>${fmtNum(p.y, 1)} кг</b>`, empty: 'Нет взвешиваний за этот период' })}
     </div>
     <div class="card">
