@@ -22,7 +22,7 @@ function renderSections() {
 function sectionTile(s) {
   const dq = questsOf(s.id, 'daily'), done = dq.filter(x => questStatus(x).done).length;
   const streak = Math.max(0, ...questsOf(s.id).map(x => questStatus(x).streak));
-  const xp30 = sum(S.events.filter(e => e.s === s.id && e.d >= addDays(today(), -29)), e => e.xp);
+  const xp30 = xpBetween(addDays(today(), -29), today(), xpIndex().sec[s.id]);
   const locked = !sectionUnlocked(s.id);
   return `<div class="card click sec-tile" data-act="nav" data-to="s/${s.id}" style="${locked ? 'opacity:.6' : ''}">
     <div class="row between">${sectionIconBox(s, 20)}<span class="chip">${locked ? icon('crown', 13) + ' Подписка' : icon(STATS.find(x => x.id === s.stat)?.icon || 'star', 13) + ' ' + statName(s.stat)}</span></div>
@@ -52,7 +52,7 @@ function renderSection(id) {
   const s = sectionById(id);
   if (!s) return `<div class="card mt2">${emptyState('alert', 'Раздел не найден', '<button class="btn sm" data-act="nav" data-to="sections">К разделам</button>')}</div>`;
   const body = (TRACKERS[s.type] || (() => ''))(s);
-  const xpTotal = sum(S.events.filter(e => e.s === s.id), e => e.xp);
+  const xpTotal = xpBetween('0000-00-00', '9999-12-31', xpIndex().sec[s.id]);
   return `
   <div class="page-h">
     <div class="row" style="gap:18px;align-items:center">
