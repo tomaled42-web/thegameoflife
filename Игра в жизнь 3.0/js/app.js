@@ -209,9 +209,11 @@ function showOnboarding() {
 }
 FORMS.onboard = d => {
   S.profile.name = (d.name || '').trim() || 'Герой';
-  saveState(); closeModal(true);
+  saveState();
   toast({ icon: 'sparkle', title: `Привет, ${S.profile.name}`, text: 'Отметь первое задание — и импульс загорится.' });
-  if (BILLING.paywall && !Cloud.user && !S.offerSeen) setTimeout(showWelcomeOffer, 500);
+  // окно не закрываем, а плавно превращаем в предложение подписки
+  if (BILLING.paywall && !Cloud.user && !S.offerSeen) showWelcomeOffer(); else closeModal(true);
+  return false;
 };
 function showComeback() {
   if (!S.comeback || S.comeback.shown) return;
