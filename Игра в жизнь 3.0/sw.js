@@ -1,5 +1,5 @@
 /* Сервис-воркер: офлайн-режим и фоновые напоминания */
-const VERSION = 'lifegame-v19';
+const VERSION = 'lifegame-v20';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'js/util.js', 'js/store.js', 'js/engine.js', 'js/charts.js', 'js/ui.js',
