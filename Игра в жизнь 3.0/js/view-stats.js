@@ -139,6 +139,8 @@ function renderSettings() {
   <div class="grid g2">
     <div class="stack">
       ${accountCard()}
+      <div class="card"><div class="card-h"><h3>${icon('eye', 18)} Обучение</h3><button class="btn xs" data-act="tourReplay">Показать</button></div>
+        <p class="muted" style="margin:0">Короткий тур по приложению на примере прокачанного героя. Твои данные не меняются.</p></div>
       <div class="card"><div class="card-h"><h3>${icon('user', 18)} Профиль</h3></div>
         <form data-form="saveName" class="row"><input class="input grow" name="name" value="${esc(S.profile.name)}" placeholder="Имя" maxlength="24"><button class="btn primary">Сохранить</button></form></div>
       <div class="card"><div class="card-h"><h3>${icon('bell', 18)} Напоминания</h3>${switchEl('remToggle', R.enabled)}</div>
