@@ -35,8 +35,8 @@ function cloudInit() {
     Cloud.user = u;
     if (u) forgetLoginStep();
     if (!u) { Cloud.profile = null; Cloud.status = 'off'; }
-    // ушёл в почту за кодом, а приложение перезапустилось — сразу возвращаем окно ввода кода
-    if (event === 'INITIAL_SESSION' && !u && typeof resumeLogin === 'function') setTimeout(resumeLogin, 0);
+    // без аккаунта: вернуть окно ввода кода (если ушёл за ним в почту) или показать предложение пробного периода
+    if (event === 'INITIAL_SESSION' && !u && typeof guestStart === 'function') setTimeout(guestStart, 600);
     if (changed && u) setTimeout(onSignedIn, 0);   // вызовы Supabase нельзя делать прямо внутри обработчика
     else if (changed) safeRender();
   });
@@ -146,6 +146,7 @@ async function onSignedIn() {
   Cloud.lastPull = Date.now();
   safeRender();
   if (typeof watchPayment === 'function') watchPayment();
+  if (typeof trialNudge === 'function') trialNudge();
 }
 /* на устройстве и в облаке разный прогресс — пусть решает человек; другой вариант остаётся страховочной копией */
 function chooseVersion(remote) {
