@@ -46,11 +46,12 @@ a { color: inherit; text-decoration: none; }
 /* ---------- атмосфера: размытые световые пятна ---------- */
 .ambient { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; background:
   radial-gradient(120% 80% at 50% -10%, #17131b 0%, var(--bg) 55%); }
-.ambient i { position: absolute; border-radius: 50%; filter: blur(90px); opacity: .55; animation: drift 38s ease-in-out infinite alternate; }
+/* пятна и так мягкие (радиальный градиент), поэтому без filter: blur — он заставлял телефон перерисовывать огромные слои каждый кадр */
+.ambient i { position: absolute; border-radius: 50%; opacity: .55; animation: drift 38s ease-in-out infinite alternate; will-change: transform; }
 .ambient i:nth-child(1) { width: 46vmax; height: 46vmax; left: -12vmax; top: -18vmax; background: radial-gradient(circle, rgba(140, 92, 140, .55), transparent 65%); }
 .ambient i:nth-child(2) { width: 38vmax; height: 38vmax; right: -14vmax; top: 18vh; background: radial-gradient(circle, rgba(92, 84, 150, .38), transparent 65%); animation-duration: 46s; animation-delay: -12s; }
 .ambient i:nth-child(3) { width: 42vmax; height: 42vmax; left: 25vw; bottom: -30vmax; background: radial-gradient(circle, rgba(170, 110, 150, .26), transparent 65%); animation-duration: 52s; animation-delay: -20s; }
-.ambient::after { content: ''; position: absolute; inset: 0; opacity: .035; mix-blend-mode: overlay;
+.ambient::after { content: ''; position: absolute; inset: 0; opacity: .03;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
 @keyframes drift { to { transform: translate3d(6vmax, 4vmax, 0) scale(1.08); } }
 
@@ -124,14 +125,18 @@ a { color: inherit; text-decoration: none; }
 
 /* ---------- карточки из матового стекла ---------- */
 .card {
-  position: relative; border-radius: var(--r-xl); padding: 22px; background: var(--glass), rgba(16,16,20,.55);
+  position: relative; border-radius: var(--r-xl); padding: 22px; background: var(--glass), rgba(16,16,20,.74);
   border: 1px solid var(--line); box-shadow: inset 0 1px 0 rgba(255,255,255,.045), 0 20px 50px -30px rgba(0,0,0,.7);
-  backdrop-filter: blur(22px) saturate(130%); -webkit-backdrop-filter: blur(22px) saturate(130%); overflow: hidden; min-width: 0;
+  overflow: hidden; min-width: 0;
+}
+/* живое размытие под карточками — только на компьютере: на телефоне оно размывало фон под каждой карточкой каждый кадр и тормозило прокрутку */
+@media (hover: hover) and (pointer: fine) and (min-width: 900px) {
+  .card { background: var(--glass), rgba(16,16,20,.55); backdrop-filter: blur(22px) saturate(130%); -webkit-backdrop-filter: blur(22px) saturate(130%); }
 }
 .card.flat { background: rgba(255,255,255,.025); box-shadow: none; }
 .card.tight { padding: 16px; }
 .card.glow::before { content: ''; position: absolute; width: 340px; height: 340px; right: -120px; top: -160px; border-radius: 50%;
-  background: radial-gradient(circle, var(--cg, var(--accent-glow)), transparent 65%); pointer-events: none; filter: blur(10px); }
+  background: radial-gradient(circle, var(--cg, var(--accent-glow)), transparent 65%); pointer-events: none; }
 .card.glow-b::before { content: ''; position: absolute; width: 420px; height: 260px; left: 50%; bottom: -170px; transform: translateX(-50%); border-radius: 50%;
   background: radial-gradient(circle, var(--cg, var(--accent-glow)), transparent 65%); pointer-events: none; }
 .card > * { position: relative; }
@@ -430,7 +435,7 @@ input[type=date].input, input[type=time].input { color-scheme: dark; }
 
 /* ---------- появление ---------- */
 .enter .card, .enter .reveal { animation: cardIn .7s var(--ease) both; animation-delay: calc(var(--i, 0) * 55ms); }
-@keyframes cardIn { from { opacity: 0; transform: translateY(14px); filter: blur(4px); } }
+@keyframes cardIn { from { opacity: 0; transform: translateY(14px); } }
 
 /* ---------- особые блоки ---------- */
 .hero-xp { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
