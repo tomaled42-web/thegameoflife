@@ -53,9 +53,12 @@ function plural(n, forms) {
 }
 const pDays = n => plural(n, ['день', 'дня', 'дней']);
 
+// форматтер создаём один раз на каждое число знаков: toLocaleString с настройками каждый раз собирал его заново, а графики зовут его сотни раз
+const NUM_FMT = {};
 function fmtNum(v, digits = 0) {
   if (v == null || isNaN(v)) return '—';
-  return Number(v).toLocaleString('ru-RU', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  const f = NUM_FMT[digits] || (NUM_FMT[digits] = new Intl.NumberFormat('ru-RU', { minimumFractionDigits: digits, maximumFractionDigits: digits }));
+  return f.format(Number(v));
 }
 function fmtSigned(v, digits = 0, suffix = '') {
   const s = v > 0 ? '+' : v < 0 ? '−' : '';
