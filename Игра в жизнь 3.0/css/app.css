@@ -565,6 +565,41 @@ input[type=date].input, input[type=time].input { color-scheme: dark; }
   .quest { min-height: 66px; }
 }
 @keyframes sheet { from { transform: translateY(100%); } }
+
+/* ---------- приветствие ---------- */
+.welcome { text-align: center; padding: 6px 4px 2px; }
+.welcome h2 { margin: 0 0 10px; font-family: var(--font-d); font-weight: 500; font-size: 27px; line-height: 1.15; letter-spacing: -.03em; }
+.welcome > p { max-width: 380px; margin: 0 auto 18px; }
+.welcome .eyebrow { justify-content: center; }
+.welcome-art { display: grid; place-items: center; margin: 4px 0 18px; }
+.orb-demo { width: 92px; height: 92px; border-radius: 50%; display: grid; place-items: center; color: #fff;
+  background: radial-gradient(circle at 50% 35%, rgba(255,220,240,.35), rgba(169,139,220,.25) 45%, rgba(40,30,44,.6) 70%);
+  border: 1px solid var(--line-2); box-shadow: 0 0 60px var(--accent-glow); animation: orbPulse 3s ease-in-out infinite; }
+@keyframes orbPulse { 50% { box-shadow: 0 0 90px var(--accent-glow); transform: scale(1.04); } }
+.welcome-points { display: grid; gap: 8px; margin: 0 auto 20px; max-width: 320px; text-align: left; }
+.welcome-points div { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 14px; background: rgba(255,255,255,.04); border: 1px solid var(--line); }
+.welcome-points .ic { color: var(--accent); }
+
+/* ---------- демо-режим ---------- */
+.demo-bar { position: fixed; z-index: 70; top: calc(10px + var(--safe-t)); left: 50%; transform: translateX(-50%); width: min(560px, calc(100vw - 24px));
+  display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; border-radius: 18px; font-size: 13px;
+  background: rgba(40,30,44,.85); border: 1px solid rgba(217,170,210,.35); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); box-shadow: 0 12px 40px rgba(0,0,0,.5); }
+.demo-bar .live { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgba(217,170,210,.2); animation: orbPulse 2s infinite; }
+body.demo .app { padding-top: 56px; }
+
+/* ---------- обучение: подсветка нужного, размытие остального ---------- */
+#tour { position: fixed; inset: 0; z-index: 100; }
+.tour-veil { position: absolute; inset: 0; background: rgba(4,4,6,.62); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); animation: fade .3s; }
+.tour-ring { position: absolute; border-radius: 22px; pointer-events: none; box-shadow: 0 0 0 2px rgba(255,255,255,.85), 0 0 40px 6px var(--accent-glow); transition: all .35s var(--ease); }
+.tour-tip { position: absolute; left: 50%; transform: translateX(-50%); width: min(400px, calc(100vw - 32px)); padding: 18px 18px 14px; border-radius: 22px;
+  background: #18161c; border: 1px solid var(--line-2); box-shadow: 0 24px 60px rgba(0,0,0,.6); animation: tipIn .35s var(--ease); }
+.tour-tip h3 { margin: 0 0 6px; font-family: var(--font-d); font-weight: 500; font-size: 19px; letter-spacing: -.02em; }
+.tour-tip p { margin: 0 0 14px; color: var(--muted); line-height: 1.5; }
+.tour-dots { display: flex; gap: 5px; margin-bottom: 12px; }
+.tour-dots i { width: 6px; height: 6px; border-radius: 3px; background: var(--faint); transition: width .3s; }
+.tour-dots i.done { background: var(--dim); }
+.tour-dots i.on { width: 20px; background: var(--text); }
+@keyframes tipIn { from { opacity: 0; transform: translate(-50%, 8px); } }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
