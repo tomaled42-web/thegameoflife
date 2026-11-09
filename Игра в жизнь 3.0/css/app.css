@@ -384,6 +384,13 @@ input[type=date].input, input[type=time].input { color-scheme: dark; }
 .modal-h p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
 .modal-f { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; flex-wrap: wrap; }
 @keyframes fade { from { opacity: 0; } }
+/* смена содержимого открытого окна и плавное закрытие */
+.modal-swap { animation: swapIn .38s var(--ease); }
+@keyframes swapIn { from { opacity: 0; transform: translateY(8px); } }
+.modal-bg.closing { animation: fadeOut .26s ease forwards; }
+.modal-bg.closing .modal { animation: sinkOut .26s ease forwards; }
+@keyframes fadeOut { to { opacity: 0; } }
+@keyframes sinkOut { to { opacity: 0; transform: translateY(24px) scale(.98); } }
 @keyframes rise { from { opacity: 0; transform: translateY(24px) scale(.98); } }
 
 /* ---------- праздничные экраны ---------- */
@@ -588,11 +595,20 @@ input[type=date].input, input[type=time].input { color-scheme: dark; }
 body.demo .app { padding-top: 56px; }
 
 /* ---------- обучение: подсветка нужного, размытие остального ---------- */
-#tour { position: fixed; inset: 0; z-index: 100; }
-.tour-veil { position: absolute; inset: 0; background: rgba(4,4,6,.62); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); animation: fade .3s; }
-.tour-ring { position: absolute; border-radius: 22px; pointer-events: none; box-shadow: 0 0 0 2px rgba(255,255,255,.85), 0 0 40px 6px var(--accent-glow); transition: all .35s var(--ease); }
+#tour { position: fixed; inset: 0; z-index: 100; animation: fade .4s ease; }
+#tour.leaving { animation: fadeOut .3s ease forwards; pointer-events: none; }
+.tour-veil { position: absolute; inset: 0; background: rgba(4,4,6,.62); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  transition: clip-path .55s cubic-bezier(.65,0,.25,1); will-change: clip-path; }
+.tour-ring { position: absolute; border-radius: 22px; pointer-events: none; box-shadow: 0 0 0 2px rgba(255,255,255,.85), 0 0 40px 6px var(--accent-glow);
+  transition: left .55s cubic-bezier(.65,0,.25,1), top .55s cubic-bezier(.65,0,.25,1), width .55s cubic-bezier(.65,0,.25,1), height .55s cubic-bezier(.65,0,.25,1), opacity .35s ease; animation: ringPulse 2.4s ease-in-out infinite; }
+@keyframes ringPulse { 50% { box-shadow: 0 0 0 2px rgba(255,255,255,.95), 0 0 56px 10px var(--accent-glow); } }
 .tour-tip { position: absolute; left: 50%; transform: translateX(-50%); width: min(400px, calc(100vw - 32px)); padding: 18px 18px 14px; border-radius: 22px;
-  background: #18161c; border: 1px solid var(--line-2); box-shadow: 0 24px 60px rgba(0,0,0,.6); animation: tipIn .35s var(--ease); }
+  background: #18161c; border: 1px solid var(--line-2); box-shadow: 0 24px 60px rgba(0,0,0,.6); transition: top .55s cubic-bezier(.65,0,.25,1); animation: tipIn .45s var(--ease) .15s backwards; }
+.tour-body { transition: opacity .22s ease, transform .22s ease; }
+.tour-body.out { opacity: 0; transform: translateY(6px); }
+#tour.init .tour-veil, #tour.init .tour-ring, #tour.init .tour-tip { transition: none; }
+#tour.init .tour-ring { opacity: 0; }
+#tour.moving .tour-ring { opacity: .7; }
 .tour-tip h3 { margin: 0 0 6px; font-family: var(--font-d); font-weight: 500; font-size: 19px; letter-spacing: -.02em; }
 .tour-tip p { margin: 0 0 14px; color: var(--muted); line-height: 1.5; }
 .tour-dots { display: flex; gap: 5px; margin-bottom: 12px; }
