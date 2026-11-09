@@ -188,11 +188,35 @@ function checkRestore() {
 
 /* ================= Задания ================= */
 let eventsVersion = 0, _qIndex = null, _qIndexV = -1;
+/* опыт по дням, разделам и характеристикам — один проход по событиям, пока они не изменились
+   (графики и статистика раньше перебирали все события на каждый день — на телефоне это тормозило) */
+let _xpIdx = null, _xpIdxKey = null;
+function xpIndex() {
+  const key = eventsVersion + ':' + S.events.length;
+  if (_xpIdx && _xpIdxKey === key && _xpIdx.src === S.events) return _xpIdx;
+  const day = {}, sec = {}, stat = {};
+  for (const e of S.events) {
+    day[e.d] = (day[e.d] || 0) + e.xp;
+    if (e.s) { const m = sec[e.s] || (sec[e.s] = {}); m[e.d] = (m[e.d] || 0) + e.xp; }
+    if (e.stat) { const m = stat[e.stat] || (stat[e.stat] = {}); m[e.d] = (m[e.d] || 0) + e.xp; }
+  }
+  _xpIdxKey = key;
+  return (_xpIdx = { src: S.events, day, sec, stat });
+}
+const xpOn = (d, map = xpIndex().day) => (map && map[d]) || 0;
+function xpBetween(from, to, map = xpIndex().day) {
+  let s = 0;
+  for (const d in map || {}) if (d >= from && d <= to) s += map[d];
+  return s;
+}
+// индекс заданий пересобирается и при замене всего состояния (синхронизация, импорт), а не только после новых событий
+let _qIndexSrc = null, _qIndexLen = -1, _qsCache = {};
 function questIndex() {
-  if (_qIndexV === eventsVersion && _qIndex) return _qIndex;
+  if (_qIndexV === eventsVersion && _qIndex && _qIndexSrc === S.events && _qIndexLen === S.events.length) return _qIndex;
   _qIndex = {};
   for (const e of S.events) if (e.k === 'quest' && e.q) ((_qIndex[e.q] ||= {})[e.d] ||= []).push(e);
-  _qIndexV = eventsVersion;
+  _qIndexV = eventsVersion; _qIndexSrc = S.events; _qIndexLen = S.events.length;
+  _qsCache = {};
   return _qIndex;
 }
 function visibleSections() { return S.sections.filter(s => !s.hidden && !s.archived).sort((a, b) => a.order - b.order); }
@@ -204,8 +228,12 @@ function dailyQuests() {
   return S.quests.filter(x => x.kind === 'daily' && !x.archived && vis.has(x.sectionId));
 }
 
+/* статус задания считается один раз, пока события не изменились: серии и рекорды перебирают дни, а экран спрашивает их десятки раз */
 function questStatus(qq, d = today()) {
-  const idx = questIndex()[qq.id] || {};
+  const all = questIndex(), key = qq.id + '|' + d + '|' + qq.kind + '|' + (qq.target || 1);
+  return _qsCache[key] || (_qsCache[key] = questStatusCalc(qq, d, all[qq.id] || {}));
+}
+function questStatusCalc(qq, d, idx) {
   if (qq.kind === 'daily') {
     const count = (idx[d] || []).length;
     let streak = 0, k = count ? d : addDays(d, -1);
@@ -362,8 +390,8 @@ function toggleChallenge() {
 
 /* ================= Неделя ================= */
 function xpByWeek() {
-  const m = {};
-  for (const e of S.events) { const w = weekStart(e.d); m[w] = (m[w] || 0) + e.xp; }
+  const m = {}, day = xpIndex().day;
+  for (const d in day) { const w = weekStart(d); m[w] = (m[w] || 0) + day[d]; }
   return m;
 }
 function weekSummary() {
