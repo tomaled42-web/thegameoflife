@@ -770,7 +770,8 @@ FORMS.cFollowers = (d, form) => {
 /* ======================= СВОЙ РАЗДЕЛ ======================= */
 TRACKERS.custom = sec => {
   const from = addDays(today(), -29);
-  const pts = daysRange(from, today()).map(d => ({ x: dayIdx(d), d, y: sum(S.events.filter(e => e.s === sec.id && e.d === d), e => e.xp) }));
+  const m = xpIndex().sec[sec.id];
+  const pts = daysRange(from, today()).map(d => ({ x: dayIdx(d), d, y: xpOn(d, m) }));
   const total = sum(pts, p => p.y);
   return `<div class="card">
     <div class="card-h"><h3>${icon('chart', 18)} Опыт раздела за 30 дней</h3><span class="chip"><b>${fmtNum(total)}</b> XP</span></div>
