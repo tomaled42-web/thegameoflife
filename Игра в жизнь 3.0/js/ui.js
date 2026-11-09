@@ -67,7 +67,20 @@ function sparks(n = 26, x = window.innerWidth / 2, y = window.innerHeight * 0.42
 /* ---------- модальные окна ---------- */
 let modalOnClose = null;
 function openModal(html, o = {}) {
-  closeModal(true);
+  // окно уже открыто — не «выезжаем» заново, а плавно меняем содержимое и перетекаем по высоте
+  const cur = $('#modal');
+  if (cur) {
+    const box = cur.querySelector('.modal'), h0 = box.offsetHeight;
+    box.className = `modal ${o.wide ? 'wide' : ''}`;
+    box.innerHTML = `<div class="modal-swap">${html}</div>`;
+    const h1 = box.offsetHeight;
+    if (Math.abs(h1 - h0) > 2 && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      box.animate([{ height: h0 + 'px' }, { height: h1 + 'px' }], { duration: 380, easing: 'cubic-bezier(.22,.8,.24,1)' });
+    }
+    modalOnClose = o.onClose || null;
+    animateAfterRender(box);
+    return cur;
+  }
   const bg = document.createElement('div');
   bg.className = 'modal-bg'; bg.id = 'modal';
   bg.innerHTML = `<div class="modal ${o.wide ? 'wide' : ''}" role="dialog" aria-modal="true">${html}</div>`;
@@ -81,7 +94,9 @@ function openModal(html, o = {}) {
 }
 function closeModal(silent) {
   const m = $('#modal'); if (!m) return;
-  m.remove();
+  // id снимаем сразу (окно уже «закрыто» для остального кода), а сам слой плавно уходит
+  m.removeAttribute('id'); m.classList.add('closing'); m.style.pointerEvents = 'none';
+  setTimeout(() => m.remove(), 260);
   if (!silent && modalOnClose) { const f = modalOnClose; modalOnClose = null; f(); }
 }
 function modalHead(title, sub = '') {
