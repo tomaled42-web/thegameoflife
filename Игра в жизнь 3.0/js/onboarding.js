@@ -229,8 +229,8 @@ function finishTour() {
   const html = `<div class="welcome">
       <div class="welcome-art"><div class="orb-demo">${icon('trophy', 34)}</div></div>
       <div class="eyebrow">Это может быть твой прогресс</div>
-      <h2>Через 2 месяца: 29 дней в серии, 17 уровень и −6 кг</h2>
-      <p class="muted">Начни с одного задания сегодня — дальше игра сама поведёт.</p>
+      <h2>Через пару месяцев ты можешь стать совсем другой версией себя</h2>
+      <p class="muted">Сильнее, спокойнее, собраннее — в том, что важно именно тебе: тело, книги, привычки, своё дело. Начни с одного задания сегодня, дальше игра поведёт сама.</p>
       ${S.profile.name ? `<button class="btn primary block" data-act="tourOffer">${icon('sparkle', 16)} Дальше</button>`
         : `<form data-form="tourName" class="stack" style="text-align:left">
         <label class="field"><span>Как к тебе обращаться?</span><input class="input" name="name" placeholder="Имя" maxlength="24" required></label>
