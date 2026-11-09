@@ -487,6 +487,14 @@ input[type=date].input, input[type=time].input { color-scheme: dark; }
 .plan { text-align: left; width: 100%; border-radius: 22px; }
 .plan b { font-weight: 500; }
 .plan.on { border-color: var(--text); box-shadow: 0 0 0 1px var(--text) inset; background: rgba(255,255,255,.06); }
+/* шкала пробного периода в предложении подписки */
+.tl { display: grid; gap: 14px; position: relative; padding-left: 2px; }
+.tl::before { content: ''; position: absolute; left: 15px; top: 16px; bottom: 16px; width: 1px; background: var(--line-2); }
+.tl-step { display: flex; gap: 12px; align-items: flex-start; position: relative; }
+.tl-step b { display: block; font-weight: 500; font-size: 14px; }
+.tl-step small { color: var(--muted); font-size: 12.5px; line-height: 1.4; }
+.tl-dot { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--bg-2); border: 1px solid var(--line-2); color: var(--muted); }
+.tl-step.on .tl-dot { background: var(--text); color: #0b0b0e; border-color: transparent; }
 .acc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; }
 .acc { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 12px; border-radius: 18px; background: rgba(255,255,255,.04); border: 1px solid var(--line-2); text-align: left; transition: background .3s, color .3s, transform .2s var(--ease); min-height: 92px; }
 .acc:active { transform: scale(.97); }
