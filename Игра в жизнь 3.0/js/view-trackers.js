@@ -1,7 +1,7 @@
 /* Трекеры разделов: вес, тренировки, чтение, медитация, воздержание, дневник, благодарность */
 'use strict';
 
-const UI = { weightPeriod: '90', exercise: null, bookTab: 'now', jMonth: today().slice(0, 7), jSel: today() };
+const UI = { weightPeriod: '90', weightAgg: 'week', exercise: null, bookTab: 'now', jMonth: today().slice(0, 7), jSel: today() };
 const TRACKERS = {};
 const dayIdx = d => diffDays('2000-01-01', d);
 const idxDay = i => addDays('2000-01-01', i);
@@ -20,18 +20,18 @@ ACTIONS.ui = el => { UI[el.dataset.k] = el.dataset.v; };
 
 /* ======================= ВЕС ======================= */
 TRACKERS.weight = sec => {
-  const W = S.weight, tr = weightTrend(), lw = lastWeight();
+  const W = S.weight, ws = sortedWeights(), lw = lastWeight();
   if (!W.start || !W.goal) return `<div class="card glow mb">
     <div class="card-h"><h3>${icon('target', 18)} Старт и цель</h3></div>
     <p class="muted" style="margin-top:0">Задай стартовый и целевой вес — приложение покажет, сколько пути уже пройдено, и отметит каждый этап.</p>
     ${weightGoalForm()}</div>`;
-  const cur = tr.length ? tr[tr.length - 1].trend : W.start;
+  const cur = lw ?? W.start, lastD = ws.length ? ws[ws.length - 1].d : null;
   const total = W.start - W.goal, done = W.start - cur, pct = total ? clamp(done / total, 0, 1) : 0;
-  const weekAgo = tr.filter(x => x.d <= addDays(today(), -7)).pop();
-  const wkDelta = weekAgo ? cur - weekAgo.trend : null;
+  const weekAgo = ws.filter(x => x.d <= addDays(today(), -7)).pop();
+  const wkDelta = weekAgo ? cur - weekAgo.kg : null;
   const days = UI.weightPeriod === 'all' ? 99999 : +UI.weightPeriod;
   const from = addDays(today(), -days);
-  const pts = tr.filter(x => x.d >= from);
+  const pts = ws.filter(x => x.d >= from);
   const step = W.step || 5, reached = Math.floor(Math.max(0, W.start - (lw ?? W.start)) / step);
   const msCount = Math.max(1, Math.ceil(Math.abs(total) / step));
   return `
@@ -41,7 +41,7 @@ TRACKERS.weight = sec => {
       <div class="row" style="gap:26px;align-items:center;flex-wrap:wrap">
         ${ring(pct, { size: 150, stroke: 9, key: 'w-ring', color: sec.color, glow: true, center: `<div><div class="num num-m">${Math.round(pct * 100)}<span class="u">%</span></div><div class="sub">пути</div></div>` })}
         <div class="grow">
-          <div class="label">Текущий вес · сглаженный</div>
+          <div class="label">Текущий вес${lastD ? ' · ' + relDay(lastD) : ''}</div>
           <div class="num num-l" style="margin:8px 0 10px">${fmtNum(cur, 1)}<span class="u">кг</span></div>
           <div class="row wrap">${wkDelta != null ? deltaBadge(wkDelta, { digits: 1, suffix: ' кг', invert: W.goal < W.start }) + '<span class="sub">за неделю</span>' : '<span class="sub">Недельная динамика появится через 7 дней</span>'}</div>
         </div>
@@ -56,7 +56,7 @@ TRACKERS.weight = sec => {
         <label class="field"><span>Дата</span><input class="input" type="date" name="d" value="${today()}" max="${today()}"></label></div>
         <button class="btn primary block">Записать · +5 XP</button>
       </form>
-      <div class="callout mt">${icon('info', 16)}<div>Опыт даётся за действия, а не за цифру на весах. График сглаживает скачки воды и соли — смотри на линию тренда.</div></div>
+      <div class="callout mt">${icon('info', 16)}<div>Опыт даётся за действия, а не за цифру на весах. Вес скачет день ко дню из-за воды и соли — честнее всего видно по средним за неделю ниже.</div></div>
     </div>
   </div>
   <div class="card mt">
@@ -64,16 +64,16 @@ TRACKERS.weight = sec => {
     ${lineChart({
       id: 'weight', h: 230,
       series: [
-        { pts: pts.map(p => ({ x: dayIdx(p.d), y: p.kg, d: p.d })), color: 'rgba(255,255,255,.4)', dots: true, width: 0.001, tip: false },
-        { pts: pts.map(p => ({ x: dayIdx(p.d), y: p.trend, d: p.d, raw: p.kg })), color: sec.color, fill: true, width: 2 },
+        { pts: pts.map(p => ({ x: dayIdx(p.d), y: p.kg, d: p.d })), color: sec.color, fill: true, dots: true, width: 2 },
         ...(W.goal ? [{ pts: pts.length ? [{ x: dayIdx(pts[0].d), y: W.goal }, { x: dayIdx(pts[pts.length - 1].d), y: W.goal }] : [], color: 'rgba(255,255,255,.3)', dashed: true, width: 1, tip: false }] : []),
       ],
       yFmt: v => fmtNum(v, 0), xLabels: pts.length ? monthTicks(pts[0].d, pts[pts.length - 1].d) : [],
-      tipFmt: p => `${fmtDay(p.d)}<b>${fmtNum(p.y, 1)} кг</b>взвешивание: ${fmtNum(p.raw, 1)}`,
-      empty: 'Запиши вес — здесь появится сглаженный график',
+      tipFmt: p => `${fmtDay(p.d)}<b>${fmtNum(p.y, 1)} кг</b>`,
+      empty: 'Запиши вес — здесь появится график',
     })}
-    <div class="legend mt"><span><i style="--c:${sec.color}"></i>Тренд</span><span><i style="--c:rgba(255,255,255,.5);width:6px;height:6px;border-radius:50%"></i>Взвешивания</span><span><i class="dash" style="--c:rgba(255,255,255,.5)"></i>Цель</span></div>
+    <div class="legend mt"><span><i style="--c:${sec.color}"></i>Вес</span><span><i class="dash" style="--c:rgba(255,255,255,.5)"></i>Цель</span></div>
   </div>
+  ${weightWeeksCard(sec)}
   <div class="grid g2 mt">
     <div class="card">
       <div class="card-h"><h3>${icon('flag', 18)} Этапы</h3><span class="sub">каждые ${step} кг</span></div>
@@ -84,6 +84,32 @@ TRACKERS.weight = sec => {
   </div>
   ${photosCard()}`;
 };
+/* средний вес по неделям или месяцам: дневные скачки воды гасятся, видно настоящее направление */
+function weightWeeksCard(sec) {
+  const byWeek = UI.weightAgg !== 'month';
+  const key = d => byWeek ? weekStart(d) : d.slice(0, 7) + '-01';
+  const groups = {};
+  for (const e of sortedWeights()) (groups[key(e.d)] = groups[key(e.d)] || []).push(e.kg);
+  const rows = Object.keys(groups).sort().slice(-12).map(k => ({ k, avg: sum(groups[k], x => x) / groups[k].length, n: groups[k].length }));
+  const label = k => byWeek ? `${fmtShort(k)} – ${fmtShort(addDays(k, 6))}` : MONTHS_NOM[+k.slice(5, 7) - 1] + ' ' + k.slice(0, 4);
+  const cur = key(today()), invert = S.weight.goal < S.weight.start;
+  const seg = segmented('ui', [['week', 'Недели'], ['month', 'Месяцы']], byWeek ? 'week' : 'month', 'soft').replace(/data-act="ui"/g, 'data-act="ui" data-k="weightAgg"');
+  return `<div class="card mt">
+    <div class="card-h"><h3>${icon('calendar', 18)} Средний вес</h3>${seg}</div>
+    ${rows.length > 1 ? lineChart({
+      id: 'wavg', h: 150,
+      series: [{ pts: rows.map(r => ({ x: dayIdx(r.k), y: r.avg, d: r.k })), color: sec.color, fill: true, dots: true, width: 2 }],
+      yFmt: v => fmtNum(v, 0), xLabels: rows.map(r => ({ x: dayIdx(r.k), text: byWeek ? fmtShort(r.k) : MONTHS_SHORT[+r.k.slice(5, 7) - 1] })).filter((_, i, a) => a.length <= 6 || i % Math.ceil(a.length / 6) === 0),
+      tipFmt: p => `${label(p.d)}<b>${fmtNum(p.y, 1)} кг</b>`,
+    }) : ''}
+    ${rows.length ? `<table class="table mt"><tbody>${[...rows].reverse().map((r, i, a) => { const prev = a[i + 1];
+      return `<tr><td>${label(r.k)}${r.k === cur ? ` <span class="delta acc" style="height:20px">${byWeek ? 'эта неделя' : 'этот месяц'}</span>` : ''}<div class="sub">${r.n} ${plural(r.n, ['взвешивание', 'взвешивания', 'взвешиваний'])}</div></td>
+        <td style="text-align:right;white-space:nowrap"><b style="font-weight:500">${fmtNum(r.avg, 1)}</b> <span class="dim">кг</span></td>
+        <td style="text-align:right;width:84px">${prev ? deltaBadge(r.avg - prev.avg, { digits: 1, suffix: '', invert }) : ''}</td></tr>`; }).join('')}</tbody></table>`
+      : emptyState('scale', 'Записывай вес — здесь появятся средние по неделям')}
+    <div class="sub mt">Взвешивайся 2–3 раза в неделю в одно время — средние станут точнее.</div>
+  </div>`;
+}
 function weightGoalForm() {
   const W = S.weight;
   return `<form data-form="weightGoal" class="form-grid">
