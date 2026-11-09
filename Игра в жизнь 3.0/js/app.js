@@ -242,7 +242,7 @@ cloudInit();
 render();
 setTimeout(() => {
   flushFx();
-  if (!S.profile.name) showOnboarding(); else showComeback();
+  if (!S.profile.name) showWelcome(); else showComeback();
 }, 350);
 
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
