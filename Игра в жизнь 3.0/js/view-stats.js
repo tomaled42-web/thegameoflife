@@ -5,11 +5,10 @@ UI.period = 'month';
 const PERIODS = { week: [7, 'Неделя'], month: [30, 'Месяц'], half: [182, 'Полгода'], year: [365, 'Год'] };
 const STAT_COLORS = { body: '#8fdcc0', strength: '#f2a28e', intellect: '#9fc3ff', spirit: '#b7a6f2', will: '#f0c890', mastery: '#d7a8d0', influence: '#c8dca0' };
 
-function periodSum(from, to, f) { return sum(S.events.filter(e => e.d >= from && e.d <= to && f(e)), e => e.xp); }
 
 function renderStats() {
   const [n] = PERIODS[UI.period], t = today(), from = addDays(t, -(n - 1)), pFrom = addDays(from, -n), pTo = addDays(from, -1);
-  const xp = periodSum(from, t, () => true), pxp = periodSum(pFrom, pTo, () => true);
+  const xp = xpBetween(from, t), pxp = xpBetween(pFrom, pTo), idx = xpIndex();
   const tasks = S.events.filter(e => e.k === 'quest' && e.d >= from).length, ptasks = S.events.filter(e => e.k === 'quest' && e.d >= pFrom && e.d <= pTo).length;
   const range = daysRange(from, t), prange = daysRange(pFrom, pTo);
   const perfect = range.filter(d => (S.days[d] || {}).perfect).length, pperfect = prange.filter(d => (S.days[d] || {}).perfect).length;
@@ -19,15 +18,16 @@ function renderStats() {
   // опыт по дням (при длинном периоде — по неделям)
   const byWeek = n > 60;
   const xpPts = byWeek
-    ? (() => { const out = []; for (let w = weekStart(from); w <= t; w = addDays(w, 7)) out.push({ x: dayIdx(w), d: w, y: periodSum(w, addDays(w, 6), () => true) }); return out; })()
-    : range.map(d => ({ x: dayIdx(d), d, y: periodSum(d, d, () => true) }));
+    ? (() => { const out = []; for (let w = weekStart(from); w <= t; w = addDays(w, 7)) out.push({ x: dayIdx(w), d: w, y: daysRange(w, addDays(w, 6)).reduce((a, d) => a + xpOn(d), 0) }); return out; })()
+    : range.map(d => ({ x: dayIdx(d), d, y: xpOn(d) }));
   // рост характеристик — накопительно
   const statSeries = STATS.map(s => {
-    let acc = sum(S.events.filter(e => e.stat === s.id && e.d < from), e => e.xp);
+    const m = idx.stat[s.id] || {};
+    let acc = xpBetween('0000-00-00', addDays(from, -1), m);
     const step = byWeek ? 7 : 1, pts = [];
     for (let i = 0; i < range.length; i += step) {
-      const d = range[i], e2 = addDays(d, step - 1);
-      acc += sum(S.events.filter(e => e.stat === s.id && e.d >= d && e.d <= e2), e => e.xp);
+      const d = range[i];
+      for (let k = i; k < Math.min(i + step, range.length); k++) acc += xpOn(range[k], m);
       pts.push({ x: dayIdx(d), d, y: acc, s: s.name });
     }
     return { pts, color: STAT_COLORS[s.id], width: 1.6, name: s.name };
@@ -80,8 +80,8 @@ function renderStats() {
     </div>
   </div>
   <div class="section-title"><h2>По разделам</h2><small>${PERIODS[UI.period][1].toLowerCase()}</small></div>
-  <div class="grid g3">${activeSections().map(s => { const v = periodSum(from, t, e => e.s === s.id), pv = periodSum(pFrom, pTo, e => e.s === s.id);
-    const sp = daysRange(addDays(t, -13), t).map(d => periodSum(d, d, e => e.s === s.id));
+  <div class="grid g3">${activeSections().map(s => { const m = idx.sec[s.id] || {}, v = xpBetween(from, t, m), pv = xpBetween(pFrom, pTo, m);
+    const sp = daysRange(addDays(t, -13), t).map(d => xpOn(d, m));
     return `<div class="card tight click" data-act="nav" data-to="s/${s.id}"><div class="row between">${sectionIconBox(s, 16, 'sm')}${deltaBadge(pct(v, pv))}</div>
       <div class="label mt">${esc(s.name)}</div><div class="num num-s" style="margin-top:6px">${fmtNum(v)}<span class="u">XP</span></div><div class="mt">${sparkline(sp, { color: s.color })}</div></div>`; }).join('')}</div>`;
 }
