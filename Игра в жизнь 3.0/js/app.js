@@ -211,6 +211,7 @@ FORMS.onboard = d => {
   S.profile.name = (d.name || '').trim() || 'Герой';
   saveState(); closeModal(true);
   toast({ icon: 'sparkle', title: `Привет, ${S.profile.name}`, text: 'Отметь первое задание — и импульс загорится.' });
+  if (BILLING.paywall && !Cloud.user && !S.offerSeen) setTimeout(showWelcomeOffer, 500);
 };
 function showComeback() {
   if (!S.comeback || S.comeback.shown) return;
