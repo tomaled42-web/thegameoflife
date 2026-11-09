@@ -147,6 +147,7 @@ async function onSignedIn() {
   safeRender();
   if (typeof watchPayment === 'function') watchPayment();
   if (typeof trialNudge === 'function') trialNudge();
+  if (typeof payAfterLogin === 'function') payAfterLogin();
 }
 /* на устройстве и в облаке разный прогресс — пусть решает человек; другой вариант остаётся страховочной копией */
 function chooseVersion(remote) {
