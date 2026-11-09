@@ -139,6 +139,49 @@ function openPaywall(reason = '') {
 }
 ACTIONS.paywall = () => { openPaywall(); return false; };
 ACTIONS.payPlan = el => { payPlan = el.dataset.v; openPaywall(); return false; };
+/* ---------- предложение для новичков: пробный период и что будет после ---------- */
+function showWelcomeOffer() {
+  S.offerSeen = true; saveState();
+  const save = Math.round((1 - PRICES.year / (PRICES.month * 12)) * 100);
+  const step = (ic, t, s, on) => `<div class="tl-step ${on ? 'on' : ''}"><span class="tl-dot">${icon(ic, 14)}</span><div><b>${t}</b><small>${s}</small></div></div>`;
+  openModal(`<div style="text-align:center;margin-bottom:18px">
+      <div class="brand-mark" style="width:56px;height:56px;border-radius:18px;margin:0 auto 14px">${icon('crown', 26)}</div>
+      <div class="eyebrow">Игра в жизнь+</div>
+      <h2 style="margin:6px 0 0;font-family:var(--font-d);font-weight:500;font-size:26px;letter-spacing:-.02em">7 дней всё открыто бесплатно</h2>
+      <p class="muted" style="margin:8px auto 0;max-width:360px">Попробуй полную игру. Карта не нужна — ничего не спишется само.</p>
+    </div>
+    <div class="tl mb">
+      ${step('sparkle', 'Сегодня', 'Арена с боссами, все разделы, полная статистика', true)}
+      ${step('bell', 'За 2 дня до конца', 'Напомним, сколько осталось')}
+      ${step('shield', 'Через 7 дней', `Бесплатная версия: ${FREE_SECTIONS} раздела, задания и уровни. Прогресс сохранится`)}
+    </div>
+    <div class="grid g2 keep mb">
+      <div class="card flat plan on"><div class="row between"><b>Год</b><span class="delta up">−${save}%</span></div><div class="num num-m" style="margin:10px 0 4px">${fmtNum(PRICES.year)} ₽</div><div class="sub">≈${fmtNum(Math.round(PRICES.year / 12))} ₽ в месяц</div></div>
+      <div class="card flat plan"><div class="row between"><b>Месяц</b></div><div class="num num-m" style="margin:10px 0 4px">${fmtNum(PRICES.month)} ₽</div><div class="sub">30 дней доступа</div></div>
+    </div>
+    <button class="btn primary block" data-act="offerTrial">${icon('sparkle', 16)} Начать 7 дней бесплатно</button>
+    <button class="btn ghost block" style="margin-top:8px" data-act="offerFree">Продолжить в бесплатной версии</button>
+    <div class="sub" style="text-align:center;margin-top:10px">Подписка — разовая оплата за месяц или год, без автосписаний.</div>`);
+}
+ACTIONS.offerTrial = () => { openLogin('Аккаунт нужен, чтобы включить 7 дней бесплатно и не потерять прогресс.'); return false; };
+ACTIONS.offerFree = () => {
+  closeModal();
+  toast({ icon: 'check', title: 'Бесплатная версия', text: `Доступны ${FREE_SECTIONS} раздела, задания и уровни. Пробный период можно начать в любой момент.` });
+  return false;
+};
+/* запуск без аккаунта: вернуть ввод кода, если человек ушёл за ним в почту, или один раз показать предложение */
+function guestStart() {
+  if (pendingLoginStep()) { resumeLogin(); return; }
+  if (BILLING.paywall && S.profile.name && !S.offerSeen && !$('#modal')) showWelcomeOffer();
+}
+/* за 2 дня до конца пробного периода — короткое напоминание, раз в день */
+function trialNudge() {
+  const st = premiumState(); if (st.kind !== 'trial') return;
+  const left = Math.max(1, Math.ceil((new Date(st.until) - Date.now()) / 864e5));
+  if (left > 2) return;
+  try { if (localStorage.getItem('lifegame.trialNudge') === today()) return; localStorage.setItem('lifegame.trialNudge', today()); } catch (e) { }
+  toast({ icon: 'crown', title: `Пробный период: ещё ${left} ${pDays(left)}`, text: 'Потом останется бесплатная версия. Подписку можно оформить в настройках.' });
+}
 ACTIONS.payLogin = () => { openLogin('Войди — и 7 дней всё будет открыто бесплатно.'); return false; };
 ACTIONS.payStart = async el => {
   if (!Cloud.user) { openLogin('Войди, чтобы оформить подписку.'); return false; }
