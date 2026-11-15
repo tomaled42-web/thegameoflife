@@ -102,6 +102,7 @@ function rollover() {
   }
   S.lastOpen = t;
   if (typeof checkAbstMilestones === 'function') checkAbstMilestones();
+  if (typeof checkDebtHold === 'function') checkDebtHold();
   checkBosses();
   checkAchievements(true);
   saveState();
@@ -219,8 +220,10 @@ function questIndex() {
   _qsCache = {};
   return _qIndex;
 }
-function visibleSections() { return S.sections.filter(s => !s.hidden && !s.archived).sort((a, b) => a.order - b.order); }
-function activeSections() { return S.sections.filter(s => !s.archived).sort((a, b) => a.order - b.order); }
+// личный раздел «Долги» виден только владельцу (debts.js)
+const allowed = s => typeof sectionAllowed !== 'function' || sectionAllowed(s);
+function visibleSections() { return S.sections.filter(s => !s.hidden && !s.archived && allowed(s)).sort((a, b) => a.order - b.order); }
+function activeSections() { return S.sections.filter(s => !s.archived && allowed(s)).sort((a, b) => a.order - b.order); }
 function sectionById(id) { return S.sections.find(s => s.id === id); }
 function questsOf(sectionId, kind) { return S.quests.filter(x => x.sectionId === sectionId && !x.archived && (!kind || x.kind === kind)); }
 function dailyQuests() {
