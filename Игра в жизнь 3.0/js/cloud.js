@@ -144,6 +144,7 @@ async function onSignedIn() {
     Cloud.status = 'ok';
   } catch (e) { console.warn('cloud sync failed', e); Cloud.status = 'error'; }
   Cloud.lastPull = Date.now();
+  if (typeof ensureDebts === 'function') { ensureDebts(); checkDebtHold(); }
   safeRender();
   if (typeof watchPayment === 'function') watchPayment();
   if (typeof trialNudge === 'function') trialNudge();
