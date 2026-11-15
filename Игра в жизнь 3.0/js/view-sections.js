@@ -42,6 +42,7 @@ function sectionSummary(s) {
     case 'abstinence': { const c = S.abstinence.counters; return c.length ? c.map(x => `${esc(x.name)}: ${abstDays(x)} дн.`).slice(0, 2).join(' · ') : 'Добавь счётчик'; }
     case 'journal': return `${Object.keys(S.journal).length} записей`;
     case 'gratitude': return `${Object.keys(S.gratitude).length} дней благодарности`;
+    case 'debts': { const D = S.debts || { list: [] }, o = D.list.filter(x => !x.closed); return o.length ? `Осталось ${fmtNum(sum(o.map(x => x.left)))} ₽ · ${debtHoldDays()} дн. без новых` : 'Запиши долги'; }
     case 'content': { const f = followersTotal(); return `Публикации сегодня: ${postsOn(today()).length} из ${contentTarget()}${f != null ? ' · ' + fmtNum(f) + ' подп.' : ''}`; }
     default: return `${questsOf(s.id).length} ${plural(questsOf(s.id).length, ['задание', 'задания', 'заданий'])}`;
   }
@@ -49,7 +50,7 @@ function sectionSummary(s) {
 
 /* ---------- страница раздела ---------- */
 function renderSection(id) {
-  const s = sectionById(id);
+  const s = [sectionById(id)].find(x => x && allowed(x));
   if (!s) return `<div class="card mt2">${emptyState('alert', 'Раздел не найден', '<button class="btn sm" data-act="nav" data-to="sections">К разделам</button>')}</div>`;
   const body = (TRACKERS[s.type] || (() => ''))(s);
   const xpTotal = xpBetween('0000-00-00', '9999-12-31', xpIndex().sec[s.id]);
@@ -126,7 +127,7 @@ function sectionForm(s) {
     <div class="form-grid">
       <label class="field"><span>Характеристика</span><select class="input" name="stat">${STATS.map(x => `<option value="${x.id}" ${x.id === s.stat ? 'selected' : ''}>${x.name}</option>`).join('')}</select></label>
       ${isNew ? `<label class="field"><span>Шаблон</span><select class="input" name="type">${Object.entries(SECTION_TYPES).map(([k, v]) => `<option value="${k}" ${k === 'custom' ? 'selected' : ''}>${v}</option>`).join('')}</select></label>`
-        : `<div class="field"><span>Шаблон</span><div class="input" style="display:flex;align-items:center;color:var(--muted)">${SECTION_TYPES[s.type]}</div></div>`}
+        : `<div class="field"><span>Шаблон</span><div class="input" style="display:flex;align-items:center;color:var(--muted)">${SECTION_TYPES[s.type] || 'Личный раздел'}</div></div>`}
     </div>
     <div class="field"><span>Иконка</span><div class="picker" data-pick="icon">${SECTION_ICONS.map(i => `<button type="button" class="${i === s.icon ? 'on' : ''}" data-act="pick" data-v="${i}">${icon(i, 18)}</button>`).join('')}</div></div>
     <div class="field"><span>Цвет акцента</span><div class="picker colors" data-pick="color">${COLORS.map(c => `<button type="button" class="${c === s.color ? 'on' : ''}" style="--c:${c}" data-act="pick" data-v="${c}"><i></i></button>`).join('')}</div></div>
