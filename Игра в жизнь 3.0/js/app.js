@@ -30,8 +30,9 @@ function render() {
   const view = $('#view');
   let html;
   try {
+    const sec = route.name === 's' ? [sectionById(route.arg)].find(x => x && allowed(x)) : null;
     if (['arena', 'arena-new', 'boss'].includes(route.name) && !isPremium()) html = lockedView('Арена', 'Большие цели становятся боссами. Каждое действие — удар.', 'swords');
-    else if (route.name === 's' && sectionById(route.arg) && !sectionUnlocked(route.arg)) html = lockedView(sectionById(route.arg).name, `В бесплатной версии доступны ${FREE_SECTIONS} раздела. Выбрать их можно порядком в «Разделах».`, sectionById(route.arg).icon);
+    else if (sec && !sectionUnlocked(route.arg)) html = lockedView(sec.name, `В бесплатной версии доступны ${FREE_SECTIONS} раздела. Выбрать их можно порядком в «Разделах».`, sec.icon);
     else html = ROUTES[route.name](route.arg);
   }
   catch (e) { console.error(e); html = `<div class="card mt2">${emptyState('alert', 'Что-то пошло не так при отрисовке экрана. Данные в порядке.<br><small>' + esc(e.message) + '</small>')}</div>`; }
