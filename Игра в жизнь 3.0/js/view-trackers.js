@@ -34,6 +34,7 @@ TRACKERS.weight = sec => {
   const pts = ws.filter(x => x.d >= from);
   const step = W.step || 5, reached = Math.floor(Math.max(0, W.start - (lw ?? W.start)) / step);
   const msCount = Math.max(1, Math.ceil(Math.abs(total) / step));
+  const thisWeek = weekWeigh();
   return `
   <div class="grid g-hero">
     <div class="card glow">
@@ -50,13 +51,16 @@ TRACKERS.weight = sec => {
       <div class="kv"><div><small>Старт</small><b>${fmtNum(W.start, 1)}</b></div><div><small>Пройдено</small><b>${fmtNum(Math.max(0, done), 1)}</b></div><div><small>Осталось</small><b>${fmtNum(Math.max(0, cur - W.goal), 1)}</b></div><div><small>Цель</small><b>${fmtNum(W.goal, 1)}</b></div></div>
     </div>
     <div class="card">
-      <div class="card-h"><h3>${icon('plus', 18)} Записать вес</h3><span class="sub">${lw ? 'последний: ' + fmtNum(lw, 1) + ' кг' : ''}</span></div>
-      <form data-form="logWeight" class="stack">
-        <div class="form-grid"><label class="field"><span>Вес, кг</span><input class="input" type="number" step="0.1" min="20" max="400" name="kg" inputmode="decimal" placeholder="${lw ? fmtNum(lw, 1).replace(',', '.') : '80.0'}" required></label>
-        <label class="field"><span>Дата</span><input class="input" type="date" name="d" value="${today()}" max="${today()}"></label></div>
-        <button class="btn primary block">Записать · +5 XP</button>
-      </form>
-      <div class="callout mt">${icon('info', 16)}<div>Опыт даётся за действия, а не за цифру на весах. Вес скачет день ко дню из-за воды и соли — честнее всего видно по средним за неделю ниже.</div></div>
+      <div class="card-h"><h3>${icon('scale', 18)} Взвешивание недели</h3><span class="sub">${fmtShort(weekStart())} – ${fmtShort(addDays(weekStart(), 6))}</span></div>
+      ${thisWeek && !UI.weighEdit ? `<div class="label">На этой неделе · ${relDay(thisWeek.d)}</div>
+        <div class="num num-l" style="margin:8px 0 10px">${fmtNum(thisWeek.kg, 1)}<span class="u">кг</span></div>
+        <div class="row between wrap"><span class="sub">Следующее — с ${fmtDay(addDays(weekStart(), 7))}</span><button class="btn xs" data-act="ui" data-k="weighEdit" data-v="1">${icon('pen', 13)} Исправить</button></div>`
+      : `<form data-form="logWeight" class="stack">
+        <div class="form-grid"><label class="field"><span>Вес, кг</span><input class="input" type="number" step="0.1" min="20" max="400" name="kg" inputmode="decimal" value="${thisWeek ? String(thisWeek.kg) : ''}" placeholder="${lw ? fmtNum(lw, 1).replace(',', '.') : '80.0'}" required></label>
+        <label class="field"><span>Дата</span><input class="input" type="date" name="d" value="${thisWeek ? thisWeek.d : today()}" max="${today()}"></label></div>
+        <button class="btn primary block">${thisWeek ? 'Сохранить' : 'Записать · +15 XP'}</button>
+      </form>`}
+      <div class="callout mt">${icon('info', 16)}<div>Взвешивайся раз в неделю — утром, натощак, в один и тот же день. Ежедневные цифры скачут из-за воды и соли и только сбивают с толку.</div></div>
     </div>
   </div>
   <div class="card mt">
@@ -95,7 +99,7 @@ function weightWeeksCard(sec) {
   const cur = key(today()), invert = S.weight.goal < S.weight.start;
   const seg = segmented('ui', [['week', 'Недели'], ['month', 'Месяцы']], byWeek ? 'week' : 'month', 'soft').replace(/data-act="ui"/g, 'data-act="ui" data-k="weightAgg"');
   return `<div class="card mt">
-    <div class="card-h"><h3>${icon('calendar', 18)} Средний вес</h3>${seg}</div>
+    <div class="card-h"><h3>${icon('calendar', 18)} Вес по ${byWeek ? 'неделям' : 'месяцам'}</h3>${seg}</div>
     ${rows.length > 1 ? lineChart({
       id: 'wavg', h: 150,
       series: [{ pts: rows.map(r => ({ x: dayIdx(r.k), y: r.avg, d: r.k })), color: sec.color, fill: true, dots: true, width: 2 }],
@@ -103,11 +107,11 @@ function weightWeeksCard(sec) {
       tipFmt: p => `${label(p.d)}<b>${fmtNum(p.y, 1)} кг</b>`,
     }) : ''}
     ${rows.length ? `<table class="table mt"><tbody>${[...rows].reverse().map((r, i, a) => { const prev = a[i + 1];
-      return `<tr><td>${label(r.k)}${r.k === cur ? ` <span class="delta acc" style="height:20px">${byWeek ? 'эта неделя' : 'этот месяц'}</span>` : ''}<div class="sub">${r.n} ${plural(r.n, ['взвешивание', 'взвешивания', 'взвешиваний'])}</div></td>
+      return `<tr><td>${label(r.k)}${r.k === cur ? ` <span class="delta acc" style="height:20px">${byWeek ? 'эта неделя' : 'этот месяц'}</span>` : ''}${!byWeek || r.n > 1 ? `<div class="sub">${r.n} ${plural(r.n, ['взвешивание', 'взвешивания', 'взвешиваний'])}</div>` : ''}</td>
         <td style="text-align:right;white-space:nowrap"><b style="font-weight:500">${fmtNum(r.avg, 1)}</b> <span class="dim">кг</span></td>
         <td style="text-align:right;width:84px">${prev ? deltaBadge(r.avg - prev.avg, { digits: 1, suffix: '', invert }) : ''}</td></tr>`; }).join('')}</tbody></table>`
-      : emptyState('scale', 'Записывай вес — здесь появятся средние по неделям')}
-    <div class="sub mt">Взвешивайся 2–3 раза в неделю в одно время — средние станут точнее.</div>
+      : emptyState('scale', 'Взвешивайся раз в неделю — здесь появится история по неделям')}
+    <div class="sub mt">${byWeek ? 'Одно взвешивание в неделю: так видно настоящее направление, без скачков воды.' : 'Средний вес за месяц по недельным взвешиваниям.'}</div>
   </div>`;
 }
 function weightGoalForm() {
@@ -125,13 +129,17 @@ FORMS.weightGoal = d => {
   if (!S.weight.entries.length) S.weight.entries.push({ d: today(), kg: +d.start });
   saveState(); closeModal(true);
 };
+/* одно взвешивание в неделю: повторная запись в ту же неделю заменяет прежнюю и опыт не даёт */
+function weekWeigh(d = today()) { const ws = weekStart(d); return S.weight.entries.find(e => weekStart(e.d) === ws) || null; }
 FORMS.logWeight = d => {
   const kg = +d.kg; if (!kg) return false;
-  const date = d.d || today();
+  const date = d.d || today(), ws = weekStart(date), had = !!weekWeigh(date);
   const before = Math.floor(weightLost() / (S.weight.step || 5));
-  S.weight.entries = S.weight.entries.filter(e => e.d !== date);
+  S.weight.entries = S.weight.entries.filter(e => weekStart(e.d) !== ws);
   S.weight.entries.push({ d: date, kg });
-  tracker('weight', 5, 'Взвешивание', ['weigh']);
+  UI.weighEdit = null;
+  if (had) { toast({ icon: 'check', title: 'Вес недели исправлен', text: `${fmtNum(kg, 1)} кг` }); afterChange(); }
+  else { tracker('weight', 15, 'Взвешивание', ['weigh']); if (ws === weekStart()) autoQuest('weigh'); }
   const after = Math.floor(weightLost() / (S.weight.step || 5));
   if (after > before && after > (S.weight.milestones.length || 0)) {
     S.weight.milestones.push({ n: after, d: today() });
