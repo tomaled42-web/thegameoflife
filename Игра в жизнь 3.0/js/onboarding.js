@@ -35,12 +35,12 @@ function buildDemoState() {
   }
   s.momentum.best = 29; s.momentum.shields = 2; s.momentum.checked = addDays(t, -1);
 
-  // вес: 92 → около 86, с обычными скачками воды
+  // вес: 92 → около 86, взвешивание раз в неделю
   Object.assign(s.weight, { start: 92, goal: 82, step: 5 });
-  for (let i = D; i >= 0; i -= 2 + Math.floor(rnd() * 2)) {
-    const kg = 92 - (D - i) * 0.095 + (rnd() - .5) * 0.9;
+  for (let i = D - D % 7; i >= 0; i -= 7) {
+    const kg = 92 - (D - i) * 0.095 + (rnd() - .5) * 0.5;
     s.weight.entries.push({ d: addDays(t, -i), kg: Math.round(kg * 10) / 10 });
-    ev(addDays(t, -i), 'tracker', 'weight', 5, { note: 'Взвешивание' });
+    ev(addDays(t, -i), 'tracker', 'weight', 15, { note: 'Взвешивание' });
   }
   s.weight.milestones = [{ n: 1, d: addDays(t, -9) }];
   s.weight.measures = [{ d: addDays(t, -56), waist: 98, chest: 104, hips: 106 }, { d: addDays(t, -28), waist: 95, chest: 103, hips: 104 }, { d: addDays(t, -2), waist: 92.5, chest: 102, hips: 102.5 }];
