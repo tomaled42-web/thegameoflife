@@ -36,6 +36,7 @@ const CONTENT_DEFAULT = () => ({ accounts: ['TikTok', 'Instagram'], perAccount: 
 function q(sectionId, title, kind, xp, extra = {}) {
   return { id: uid(), sectionId, title, kind, xp, target: 1, createdAt: today(), ...extra };
 }
+const weighQuest = () => q('weight', 'Взвешивание недели', 'weekly', 30, { auto: 'weigh', icon: 'scale' });
 
 function defaultState() {
   const sections = [
@@ -54,6 +55,7 @@ function defaultState() {
     q('weight', 'Вода: 2 литра', 'daily', 15, { icon: 'droplet' }),
     q('weight', 'Ужин без фастфуда', 'daily', 20, { icon: 'apple' }),
     q('weight', 'Записать обхваты', 'weekly', 40, { auto: 'measure', icon: 'ruler' }),
+    weighQuest(),
     q('workout', 'Тренировки за неделю', 'weekly', 160, { target: 4, auto: 'workout', icon: 'dumbbell' }),
     q('reading', 'Читать 20 минут', 'daily', 20, { auto: 'reading', icon: 'book' }),
     q('meditation', 'Медитация 10 минут', 'daily', 20, { auto: 'meditation', icon: 'lotus' }),
@@ -90,7 +92,7 @@ function defaultState() {
       minTasks: 1, maxShields: 3, sound: true,
     },
     lastOpen: null,
-    migrations: ['content', 'content2', 'content3', 'workout2'],
+    migrations: ['content', 'content2', 'content3', 'workout2', 'weigh1'],
   };
 }
 
@@ -157,6 +159,11 @@ function migrate(s) {
   if (!s.migrations.includes('workout2')) {
     for (const w of (s.workouts || {}).list || []) if (!w.type) w.type = 'strength';
     s.migrations.push('workout2');
+  }
+  // вес записывается раз в неделю — у раздела веса появляется недельное задание
+  if (!s.migrations.includes('weigh1')) {
+    if (s.sections.some(x => x.id === 'weight') && !s.quests.some(x => x.auto === 'weigh' && !x.archived)) s.quests.push(weighQuest());
+    s.migrations.push('weigh1');
   }
   s.content = { ...CONTENT_DEFAULT(), ...s.content };
   const cq = s.quests.find(x => x.auto === 'carousel' && !x.archived);
